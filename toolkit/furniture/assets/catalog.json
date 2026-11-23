@@ -1,0 +1,309 @@
+{
+  "version": 1,
+  "base": "assets/furniture/",
+  "models": {
+    "sofa-main": {
+      "file": "sofa-main.glb",
+      "size": [
+        2500,
+        990,
+        920
+      ],
+      "keys": [
+        "sofa",
+        "fourSofa",
+        "officeSofa"
+      ],
+      "tint": [
+        "fabricblue",
+        "linen"
+      ],
+      "materials": [
+        "walnut",
+        "fabricBlue",
+        "linen"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Sofa Three Seat (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-sofa-three-seat-6be9b44b",
+      "triangles": 3140
+    },
+    "sofa-2s": {
+      "file": "sofa-2s.glb",
+      "size": [
+        1900,
+        990,
+        920
+      ],
+      "keys": [
+        "loveseat"
+      ],
+      "tint": [
+        "fabricgrey"
+      ],
+      "materials": [
+        "walnut",
+        "fabricGrey",
+        "mustard"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Sofa Two Seat (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-sofa-two-seat-904fa140",
+      "triangles": 2360
+    },
+    "sofa-l": {
+      "file": "sofa-l.glb",
+      "size": [
+        2400,
+        935,
+        1740
+      ],
+      "keys": [
+        "lSofa"
+      ],
+      "tint": [
+        "fabricblue"
+      ],
+      "materials": [
+        "walnut",
+        "fabricBlue",
+        "mustard"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Corner Sofa Unit (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-corner-sofa-unit-c6974a3b",
+      "triangles": 2464
+    },
+    "bed-main": {
+      "file": "bed-main.glb",
+      "size": [
+        1710,
+        1105,
+        2190
+      ],
+      "keys": [
+        "bed18",
+        "bed15"
+      ],
+      "tint": [
+        "fabricgrey",
+        "fabricblue"
+      ],
+      "materials": [
+        "walnut",
+        "fabricGrey",
+        "linen",
+        "fabricBlue",
+        "mustard"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Double Bed Upholstered (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-double-bed-upholster-4c7d1e0e",
+      "triangles": 1944
+    },
+    "dining-6s": {
+      "file": "dining-6s.glb",
+      "size": [
+        2000,
+        773,
+        1000
+      ],
+      "keys": [
+        "diningTable",
+        "diningTable6",
+        "longTable"
+      ],
+      "tint": [],
+      "materials": [
+        "oak",
+        "walnut"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Dining Table 6-Seat (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-dining-table-6seat-02f48ab1",
+      "triangles": 512
+    },
+    "nightstand-main": {
+      "file": "nightstand-main.glb",
+      "size": [
+        450,
+        530,
+        420
+      ],
+      "keys": [
+        "nightstand"
+      ],
+      "tint": [],
+      "materials": [
+        "walnut",
+        "carcass",
+        "black",
+        "oak"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Side Table Square Drawer (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-side-table-square-dr-0e5df392",
+      "triangles": 588
+    },
+    "chair-main": {
+      "file": "chair-main.glb",
+      "size": [
+        490,
+        1003,
+        471
+      ],
+      "keys": [
+        "chair"
+      ],
+      "tint": [
+        "fabricblue"
+      ],
+      "materials": [
+        "oak",
+        "walnut",
+        "fabricBlue"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Dining Chair Upholstered (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-dining-chair-upholst-7ec33345",
+      "triangles": 1248
+    },
+    "coffee-table-main": {
+      "file": "coffee-table-main.glb",
+      "size": [
+        1200,
+        466,
+        600
+      ],
+      "keys": [
+        "coffeeTable"
+      ],
+      "tint": [],
+      "materials": [
+        "walnut",
+        "oak"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Coffee Table Rect (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-coffee-table-rect-2efbd4f9",
+      "triangles": 448
+    },
+    "armchair-dining": {
+      "file": "armchair-dining.glb",
+      "size": [
+        579,
+        995,
+        525
+      ],
+      "keys": [
+        "armDiningChair"
+      ],
+      "tint": [
+        "soft"
+      ],
+      "materials": [
+        "surface",
+        "soft",
+        "accent"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Carver armchair (Restaurant Kitchen and Dining Room) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/restaurant-kitchen-and-dining-carver-armchair-e429d918",
+      "triangles": 2116
+    },
+    "chair-training": {
+      "file": "chair-training.glb",
+      "size": [
+        480,
+        950,
+        480
+      ],
+      "keys": [
+        "trainingChair"
+      ],
+      "tint": [
+        "plum"
+      ],
+      "materials": [
+        "steel",
+        "white",
+        "plum"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Consultation Chair (Pharmacy and High Street Chemist) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/pharmacy-and-high-street-chemist-consultation-chair-51eb015a",
+      "triangles": 864
+    },
+    "tea-table": {
+      "file": "tea-table.glb",
+      "size": [
+        841,
+        499,
+        836
+      ],
+      "keys": [
+        "teaTable"
+      ],
+      "tint": [],
+      "materials": [
+        "chinese_tea_table"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Chinese Tea Table — Kirill Sannikov (polyhaven) CC0",
+      "source": "https://polyhaven.com/a/chinese_tea_table",
+      "triangles": 2508
+    },
+    "dining-round-4": {
+      "file": "dining-round-4.glb",
+      "size": [
+        1100,
+        720,
+        1100
+      ],
+      "keys": [],
+      "tint": [],
+      "materials": [
+        "walnut",
+        "oak"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Dining Table Round 4seat (Bedroom and Living Room Furniture) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bedroom-and-living-room-furniture-dining-table-round-4-31267413",
+      "triangles": 464
+    },
+    "bar-stool-counter": {
+      "file": "bar-stool-counter.glb",
+      "size": [
+        505,
+        1045,
+        505
+      ],
+      "keys": [],
+      "tint": [],
+      "materials": [
+        "metal",
+        "surface",
+        "soft",
+        "accent"
+      ],
+      "license": "CC0",
+      "attributionRequired": false,
+      "credit": "Counter height bar stool (Cafe, Bakery and Coffee Bar) — 3D Assets (threedassets) CC0",
+      "source": "https://3dassets.dev/assets/bakery-and-cafe-bar-stool-counter-ec2e9883",
+      "triangles": 1436
+    }
+  },
+  "updated": "2026-11-17"
+}

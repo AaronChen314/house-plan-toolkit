@@ -1,0 +1,187 @@
+[
+  {
+    "old": "scripts/build.py",
+    "implementation": "toolkit/legacy/scripts/build.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/cadpair.py",
+    "implementation": "toolkit/legacy/scripts/cadpair.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dxfinventory.py",
+    "implementation": "toolkit/legacy/scripts/dxfinventory.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/cadshot.py",
+    "implementation": "toolkit/legacy/scripts/cadshot.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/imgio.py",
+    "implementation": "toolkit/legacy/scripts/imgio.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/doorcheck.py",
+    "implementation": "toolkit/legacy/scripts/doorcheck.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/wallaudit.py",
+    "implementation": "toolkit/legacy/scripts/wallaudit.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/align2.py",
+    "implementation": "toolkit/legacy/scripts/align2.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/coverage.py",
+    "implementation": "toolkit/legacy/scripts/coverage.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dimticks.py",
+    "implementation": "toolkit/legacy/scripts/dimticks.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/furnoverlay.py",
+    "implementation": "toolkit/legacy/scripts/furnoverlay.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/cadsplit.py",
+    "implementation": "toolkit/legacy/scripts/cadsplit.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dimocr.py",
+    "implementation": "toolkit/legacy/scripts/dimocr.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/bench.py",
+    "implementation": "toolkit/legacy/scripts/bench.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/axismap.py",
+    "implementation": "toolkit/legacy/scripts/axismap.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/cadvec.py",
+    "implementation": "toolkit/legacy/scripts/cadvec.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/wallfit.py",
+    "implementation": "toolkit/legacy/scripts/wallfit.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dxfaudit.py",
+    "implementation": "toolkit/legacy/scripts/dxfaudit.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/rectify.py",
+    "implementation": "toolkit/legacy/scripts/rectify.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/gridmm.py",
+    "implementation": "toolkit/legacy/scripts/gridmm.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/qa_files.py",
+    "implementation": "toolkit/legacy/scripts/qa_files.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/analyze.py",
+    "implementation": "toolkit/legacy/scripts/analyze.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dxf_prepare.py",
+    "implementation": "toolkit/legacy/scripts/dxf_prepare.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/dimtext.py",
+    "implementation": "toolkit/legacy/scripts/dimtext.py",
+    "status": "legacy-adapter"
+  },
+  {
+    "old": "scripts/elecaudit.mjs",
+    "implementation": "toolkit/legacy/scripts/elecaudit.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/qa.mjs",
+    "implementation": "toolkit/legacy/scripts/qa.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/closeup.mjs",
+    "implementation": "toolkit/legacy/scripts/closeup.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/clicktest.mjs",
+    "implementation": "toolkit/legacy/scripts/clicktest.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/qa_styles.mjs",
+    "implementation": "toolkit/legacy/scripts/qa_styles.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/check.mjs",
+    "implementation": "toolkit/legacy/scripts/check.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/qa_furniture.mjs",
+    "implementation": "toolkit/legacy/scripts/qa_furniture.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/walktest.mjs",
+    "implementation": "toolkit/legacy/scripts/walktest.mjs",
+    "status": "designer-adapter"
+  },
+  {
+    "old": "scripts/browser.mjs",
+    "implementation": "toolkit/checks/browser.mjs",
+    "status": "shared"
+  },
+  {
+    "old": "scripts/preview.mjs",
+    "implementation": "toolkit/cli/preview.mjs",
+    "status": "shared"
+  },
+  {
+    "old": "scripts/furniture3d.mjs",
+    "implementation": "toolkit/furniture/catalog-cli.mjs",
+    "status": "shared"
+  },
+  {
+    "old": "assets/template.html",
+    "implementation": "toolkit/legacy/assets/template.html",
+    "status": "symlink"
+  },
+  {
+    "old": "assets/furniture",
+    "implementation": "toolkit/furniture/assets",
+    "status": "symlink"
+  }
+]

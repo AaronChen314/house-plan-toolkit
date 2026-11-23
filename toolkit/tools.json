@@ -1,0 +1,176 @@
+{
+  "elecaudit": {
+    "runtime": "node",
+    "entry": "legacy/scripts/elecaudit.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "build": {
+    "runtime": "python",
+    "entry": "legacy/scripts/build.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "cadpair": {
+    "runtime": "python",
+    "entry": "legacy/scripts/cadpair.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dxfinventory": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dxfinventory.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "cadshot": {
+    "runtime": "python",
+    "entry": "legacy/scripts/cadshot.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "imgio": {
+    "runtime": "python",
+    "entry": "legacy/scripts/imgio.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "qa": {
+    "runtime": "node",
+    "entry": "legacy/scripts/qa.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "doorcheck": {
+    "runtime": "python",
+    "entry": "legacy/scripts/doorcheck.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "wallaudit": {
+    "runtime": "python",
+    "entry": "legacy/scripts/wallaudit.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "align2": {
+    "runtime": "python",
+    "entry": "legacy/scripts/align2.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "closeup": {
+    "runtime": "node",
+    "entry": "legacy/scripts/closeup.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "coverage": {
+    "runtime": "python",
+    "entry": "legacy/scripts/coverage.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dimticks": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dimticks.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "furnoverlay": {
+    "runtime": "python",
+    "entry": "legacy/scripts/furnoverlay.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "cadsplit": {
+    "runtime": "python",
+    "entry": "legacy/scripts/cadsplit.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "clicktest": {
+    "runtime": "node",
+    "entry": "legacy/scripts/clicktest.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dimocr": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dimocr.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "bench": {
+    "runtime": "python",
+    "entry": "legacy/scripts/bench.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "qa_styles": {
+    "runtime": "node",
+    "entry": "legacy/scripts/qa_styles.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "axismap": {
+    "runtime": "python",
+    "entry": "legacy/scripts/axismap.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "cadvec": {
+    "runtime": "python",
+    "entry": "legacy/scripts/cadvec.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "wallfit": {
+    "runtime": "python",
+    "entry": "legacy/scripts/wallfit.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "check": {
+    "runtime": "node",
+    "entry": "legacy/scripts/check.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dxfaudit": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dxfaudit.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "qa_furniture": {
+    "runtime": "node",
+    "entry": "legacy/scripts/qa_furniture.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "rectify": {
+    "runtime": "python",
+    "entry": "legacy/scripts/rectify.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "gridmm": {
+    "runtime": "python",
+    "entry": "legacy/scripts/gridmm.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "qa_files": {
+    "runtime": "python",
+    "entry": "legacy/scripts/qa_files.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "walktest": {
+    "runtime": "node",
+    "entry": "legacy/scripts/walktest.mjs",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "analyze": {
+    "runtime": "python",
+    "entry": "legacy/scripts/analyze.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dxf_prepare": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dxf_prepare.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "dimtext": {
+    "runtime": "python",
+    "entry": "legacy/scripts/dimtext.py",
+    "interface": "legacy; run with original documented arguments"
+  },
+  "preview": {
+    "runtime": "node",
+    "entry": "cli/preview.mjs"
+  },
+  "white-model-check": {
+    "runtime": "node",
+    "entry": "checks/white-model.mjs",
+    "interface": "file.html [output-directory]"
+  },
+  "data-check": {
+    "runtime": "python",
+    "entry": "checks/data.py",
+    "interface": "model.json [--out report.json]"
+  }
+}

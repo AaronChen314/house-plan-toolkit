@@ -1,0 +1,114 @@
+{
+  "schema": "publish-surface/v1",
+  "updated": "2026-11-23",
+  "layouts": {
+    "current": {
+      "description": "迁移前的仓库布局，仅用于迁移期审计；P1 完成后删除",
+      "allowDirectories": [
+        ".agents",
+        ".claude",
+        "assets",
+        "reference",
+        "scripts",
+        "toolkit"
+      ],
+      "allowFiles": [
+        ".gitignore",
+        "AGENTS.md",
+        "LICENSE",
+        "README.md",
+        "SKILL.md",
+        "package.json",
+        "package-lock.json",
+        "publish-manifest.json"
+      ],
+      "denyExtensions": [
+        ".dwg",
+        ".dxf",
+        ".pdf",
+        ".zip",
+        ".xlsx",
+        ".xls",
+        ".doc",
+        ".docx",
+        ".skp",
+        ".blend"
+      ],
+      "assetManifests": [
+        "toolkit/furniture/assets/catalog.json"
+      ]
+    },
+    "target": {
+      "description": "发布用仓库布局：只有 CLI、技能、文档、模板与合成示例",
+      "allowDirectories": [
+        "bin",
+        "src",
+        "schemas",
+        "skills",
+        "docs",
+        "templates",
+        "examples",
+        "tests"
+      ],
+      "allowFiles": [
+        ".gitignore",
+        ".npmignore",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "LICENSE",
+        "README.md",
+        "package.json",
+        "package-lock.json",
+        "publish-manifest.json"
+      ],
+      "denyExtensions": [
+        ".dwg",
+        ".dxf",
+        ".pdf",
+        ".zip",
+        ".xlsx",
+        ".xls",
+        ".doc",
+        ".docx",
+        ".skp",
+        ".blend"
+      ],
+      "assetManifests": [
+        "src/furniture/assets/catalog.json"
+      ]
+    },
+    "initial": {
+      "description": "首次公开提交的布局：工具包 + 技能 + 规范文档 + 合成示例，不含 README 截图与旧脚本兼容层",
+      "allowDirectories": [
+        ".agents",
+        "reference",
+        "toolkit"
+      ],
+      "allowFiles": [
+        ".gitignore",
+        "AGENTS.md",
+        "LICENSE",
+        "README.md",
+        "publish-manifest.json"
+      ],
+      "denyExtensions": [
+        ".dwg",
+        ".dxf",
+        ".pdf",
+        ".zip",
+        ".xlsx",
+        ".xls",
+        ".doc",
+        ".docx",
+        ".skp",
+        ".blend"
+      ],
+      "assetManifests": [
+        "toolkit/furniture/assets/catalog.json"
+      ]
+    }
+  },
+  "binaries": {
+    "registered": {}
+  }
+}

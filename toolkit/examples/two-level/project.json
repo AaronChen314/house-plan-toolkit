@@ -1,0 +1,7 @@
+{
+  "schema": "space-project/v1",
+  "id": "two-level-example",
+  "name": "独立两层示例 · 非真实户型",
+  "model": "model.json",
+  "output": "../../../output/toolkit-two-level"
+}

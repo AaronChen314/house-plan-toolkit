@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Space Model v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "units",
+    "projectId",
+    "name",
+    "floors"
+  ],
+  "properties": {
+    "schema": {
+      "const": "space-model/v1"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "slab": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "floors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/floor"
+      }
+    },
+    "view": {
+      "type": "object",
+      "properties": {
+        "centerMm": {
+          "$ref": "#/$defs/point"
+        },
+        "entryFloor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "legacyStorageKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "ring": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/point"
+      },
+      "minItems": 3
+    },
+    "polygon": {
+      "type": "object",
+      "required": [
+        "outer"
+      ],
+      "properties": {
+        "outer": {
+          "$ref": "#/$defs/ring"
+        },
+        "holes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ring"
+          }
+        }
+      }
+    },
+    "height": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "properties": {
+            "floorId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "field": {
+              "enum": [
+                "elevation",
+                "clearHeight",
+                "wallHeight",
+                "slabThickness"
+              ]
+            },
+            "valueMm": {
+              "type": "number"
+            },
+            "slabFactor": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "floor": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "elevation",
+        "clearHeight",
+        "slab"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elevation": {
+          "$ref": "#/$defs/height"
+        },
+        "clearHeight": {
+          "$ref": "#/$defs/height"
+        },
+        "wallHeight": {
+          "$ref": "#/$defs/height"
+        },
+        "slabThickness": {
+          "$ref": "#/$defs/height"
+        },
+        "slab": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "walls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "outdoor": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "roofSlab": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "furniture": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/furniture"
+          }
+        },
+        "doors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/door"
+          }
+        },
+        "windowOpenings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/window"
+          }
+        },
+        "stairsTo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "treads": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/polygon"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "polygon"
+                ],
+                "properties": {
+                  "polygon": {
+                    "$ref": "#/$defs/polygon"
+                  },
+                  "heightMm": {
+                    "type": "number"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "ceilingFromFloorIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ceilingZones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "footprint",
+              "top"
+            ],
+            "properties": {
+              "footprint": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/polygon"
+                }
+              },
+              "top": {
+                "$ref": "#/$defs/height"
+              }
+            }
+          }
+        },
+        "walkEntries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "point"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "point": {
+                "$ref": "#/$defs/point"
+              },
+              "yaw": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "guards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "a",
+              "b",
+              "heightMm"
+            ],
+            "properties": {
+              "a": {
+                "$ref": "#/$defs/point"
+              },
+              "b": {
+                "$ref": "#/$defs/point"
+              },
+              "heightMm": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "furniture": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "footprint"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceHandles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "heightFrom": {
+          "type": "string",
+          "minLength": 1
+        },
+        "heightMm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "baseMm": {
+          "type": "number"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "footprint": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/polygon"
+          }
+        },
+        "cabinetRole": {
+          "enum": [
+            "full",
+            "counter",
+            "low",
+            "bar",
+            "appliance"
+          ]
+        },
+        "topGapMm": {
+          "type": "number"
+        },
+        "assetId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "facing": {
+          "type": "number"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "cabinetRole"
+            ],
+            "properties": {
+              "cabinetRole": {
+                "const": "full"
+              }
+            }
+          },
+          "then": {},
+          "else": {
+            "required": [
+              "heightMm"
+            ],
+            "properties": {
+              "heightMm": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "door": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "hinge",
+        "closedEnd",
+        "openEnd",
+        "heightMm",
+        "thicknessMm"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceHandles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "heightFrom": {
+          "type": "string",
+          "minLength": 1
+        },
+        "heightMm": {
+          "type": "number"
+        },
+        "baseMm": {
+          "type": "number"
+        },
+        "kind": {
+          "const": "door"
+        },
+        "hinge": {
+          "$ref": "#/$defs/point"
+        },
+        "closedEnd": {
+          "$ref": "#/$defs/point"
+        },
+        "openEnd": {
+          "$ref": "#/$defs/point"
+        },
+        "thicknessMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "footprint",
+        "sillMm",
+        "headMm"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceHandles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "heightFrom": {
+          "type": "string",
+          "minLength": 1
+        },
+        "heightMm": {
+          "type": "number"
+        },
+        "baseMm": {
+          "type": "number"
+        },
+        "kind": {
+          "const": "window"
+        },
+        "footprint": {
+          "$ref": "#/$defs/polygon"
+        },
+        "sillMm": {
+          "type": "number"
+        },
+        "headMm": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}

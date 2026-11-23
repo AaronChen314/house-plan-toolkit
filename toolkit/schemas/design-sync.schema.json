@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Design to 3D Sync v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "projectId",
+    "version",
+    "status",
+    "design",
+    "model3d",
+    "changes",
+    "render"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "design-sync/v1"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "passed",
+        "blocked"
+      ]
+    },
+    "design": {
+      "type": "object",
+      "required": [
+        "model"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "preview": {
+          "type": "string"
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "model3d": {
+      "type": "object",
+      "required": [
+        "project"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "project": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "currentVersion": {
+          "type": "string"
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    },
+    "render": {
+      "type": "object",
+      "required": [
+        "cameras"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cameras": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/camera"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "string"
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "change": {
+      "type": "object",
+      "required": [
+        "id",
+        "objectId",
+        "kind",
+        "risk"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "material",
+            "finish",
+            "lighting",
+            "floor_finish",
+            "movable_furniture",
+            "cabinet_front",
+            "built_in_cabinet",
+            "soft_furnishing",
+            "wall",
+            "opening",
+            "door",
+            "window",
+            "beam",
+            "column",
+            "slab",
+            "stair",
+            "level",
+            "mep",
+            "other"
+          ]
+        },
+        "risk": {
+          "enum": [
+            "presentation",
+            "configurable",
+            "structural",
+            "services",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "before": {},
+        "after": {}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

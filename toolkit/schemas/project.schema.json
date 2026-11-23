@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Space Project v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "name"
+  ],
+  "properties": {
+    "schema": {
+      "const": "space-project/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spec": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assets": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "floorSettings": {
+      "type": "object"
+    },
+    "furnitureBindings": {
+      "type": "object"
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "view": {
+      "type": "object"
+    },
+    "overrides": {
+      "type": "object"
+    },
+    "overrideAliases": {
+      "type": "object"
+    }
+  }
+}

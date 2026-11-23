@@ -1,0 +1,8 @@
+{
+  "schema": "space-project/v1",
+  "id": "new-house",
+  "name": "新住宅项目",
+  "status": "awaiting-source",
+  "model": null,
+  "output": "output"
+}

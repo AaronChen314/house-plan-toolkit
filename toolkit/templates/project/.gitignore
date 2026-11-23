@@ -1,0 +1,13 @@
+output/
+.space/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+node_modules/
+.venv/
+venv/
+*.dwl
+*.dwl2
+*.sv$
+*.bak
