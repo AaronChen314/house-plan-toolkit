@@ -1,7 +1,9 @@
 node_modules/
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 output/
 .space/
 .DS_Store
+*.tgz

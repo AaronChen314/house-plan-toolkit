@@ -1,0 +1,12 @@
+{
+  "schema": "space-lock/v1",
+  "toolkit": "0.2.0",
+  "schemas": {
+    "space-project": "v1",
+    "space-model": "v1",
+    "design-sync": "v1"
+  },
+  "layoutVersion": 1,
+  "lockedAt": "2026-11-23",
+  "modelSha256": "42099fe2517d13bf8a1daff24b47358557f012df6939826d0e4774d9894c6c8e"
+}

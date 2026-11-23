@@ -1,0 +1,9 @@
+{
+  "schema": "space-project/v1",
+  "id": "two-level",
+  "name": "两层示例（合成数据）",
+  "status": "synthetic-example",
+  "model": "data/model.json",
+  "output": "output",
+  "assets": "../../src/furniture/assets/catalog.json"
+}

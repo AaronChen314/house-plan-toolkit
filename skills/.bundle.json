@@ -1,0 +1,53 @@
+{
+  "schema": "skills-state/v1",
+  "version": "0.2.0",
+  "skills": {
+    "cad-to-space-data": {
+      "skillSha256": "bf2f970e9e24a88857d23608175f1cdb1f07c181bf4e9a4cdabb00548d4e5716",
+      "references": {
+        "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
+        "cad-conventions.md": "cdb080e1f14f2c030f10469ea61c1f91fe15953ed78ee10eda4620baa4715378",
+        "route-dxf-layout.md": "4b654a3f47442b57c8fce74347c6311da96a4d65989b2d816e6812d4cccd07d0",
+        "route-building.md": "848e9991524f658d62d27e3373467a69913d72b3c5bdb84db3ecadf6432d1bfd",
+        "structure-format.md": "c0468594dae04891fb44d2e8776b14b0aba6ecf81f7b1114c8dd2ad182688bb8",
+        "structure.schema.json": "03b28c4a1f53b86ada51c0c4131983142e4cae22a57e2314d7b0594a531fa28a",
+        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+      }
+    },
+    "floor-plan-design": {
+      "skillSha256": "321c3373be7a8ddf3dbf58efe1d4fa975ef61459f3638db7fb285d69719eb5ec",
+      "references": {
+        "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
+        "spec-format.md": "8fa0db53e06857c3815d5e0acaad13fb1f850e8f4178369b6616cb6f23e8911e",
+        "furnishing.md": "4fc07d803197e0a93bfc76fc3414ddb5e7f18a52b504e26f297864c652ba5c51",
+        "mep-rules.md": "bdf457b717004bcf1dbe735d9504d2e6c5c1ed0e6bd8dbdf08324eb9f028c4e3",
+        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+      }
+    },
+    "plan-to-3d": {
+      "skillSha256": "a3028b7062ac38de5142198d04fa9fecdb1d9bec681e77e63f047dd36dcf64ca",
+      "references": {
+        "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
+        "spec-format.md": "8fa0db53e06857c3815d5e0acaad13fb1f850e8f4178369b6616cb6f23e8911e",
+        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+      }
+    },
+    "design-to-3d-sync": {
+      "skillSha256": "c2b30b0fb8de60dcc494b77532456736500166ac0a363c11adb3f1fbc29426ce",
+      "references": {
+        "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
+        "design-sync-manifest.md": "52a88a6e41cc9bb06177d0db42d007f42ea6ace2cfd0cd9a0525946a74f02c24",
+        "design-sync.schema.json": "a401fbc0afc8c5021c6ab0927e94473bf882e36a061b0a46157e08cb973530af",
+        "design-image-prompts.md": "984fbcb492ab07bd411b95e4439d3b938c0159beaea3b5dee69354766beeccdb"
+      }
+    },
+    "design-image-render": {
+      "skillSha256": "fea782f0dad2dab7dfd2fdc7228b812a89c3d01b3774b2c274da41186e717604",
+      "references": {
+        "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
+        "design-image-prompts.md": "984fbcb492ab07bd411b95e4439d3b938c0159beaea3b5dee69354766beeccdb",
+        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+      }
+    }
+  }
+}

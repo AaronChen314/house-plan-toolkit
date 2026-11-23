@@ -1,0 +1,24 @@
+{
+  "name": "house-plan-toolkit",
+  "version": "0.2.0",
+  "description": "户型空间工具包：CAD 转空间数据、平面核对、三维白模、设计同步与出图，含领域技能与规范",
+  "type": "module",
+  "license": "MIT",
+  "bin": {"space": "bin/space.mjs"},
+  "files": ["bin", "src", "schemas", "skills", "docs", "templates", "examples", "requirements.txt", "publish-manifest.json", "README.md", "LICENSE", "CHANGELOG.md"],
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "skills:build": "node src/cli/skills.mjs build",
+    "skills:check": "node src/cli/skills.mjs check",
+    "verify:public": "node src/checks/public-surface.mjs --layout target"
+  },
+  "dependencies": {"three": "0.170.0", "esbuild": "0.24.0"},
+  "optionalDependencies": {
+    "puppeteer-core": "23.11.1",
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "sharp": "^0.33.5"
+  }
+}

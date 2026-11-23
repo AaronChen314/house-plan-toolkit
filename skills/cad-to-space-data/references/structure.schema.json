@@ -1,0 +1,735 @@
+{
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "const": "./structure.schema.json"
+    },
+    "schema": {
+      "const": "cad-structure/v2"
+    },
+    "schemaVersion": {
+      "const": 2
+    },
+    "name": {
+      "type": "string"
+    },
+    "sourceName": {
+      "type": "string"
+    },
+    "sourceSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "const": "right"
+        },
+        "y": {
+          "const": "down"
+        },
+        "space": {
+          "const": "floor_local"
+        },
+        "sourceTransform": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "space",
+        "sourceTransform"
+      ],
+      "additionalProperties": false
+    },
+    "note": {
+      "type": "string"
+    },
+    "typeCatalog": {
+      "type": "object",
+      "properties": {
+        "wall": {
+          "$ref": "#/$defs/type"
+        },
+        "bearing": {
+          "$ref": "#/$defs/type"
+        },
+        "nonbearing": {
+          "$ref": "#/$defs/type"
+        },
+        "thin": {
+          "$ref": "#/$defs/type"
+        },
+        "partition": {
+          "$ref": "#/$defs/type"
+        },
+        "enclosure": {
+          "$ref": "#/$defs/type"
+        },
+        "column": {
+          "$ref": "#/$defs/type"
+        },
+        "door": {
+          "$ref": "#/$defs/type"
+        },
+        "window": {
+          "$ref": "#/$defs/type"
+        },
+        "opening": {
+          "$ref": "#/$defs/type"
+        },
+        "stair": {
+          "$ref": "#/$defs/type"
+        },
+        "unconfirmed": {
+          "$ref": "#/$defs/type"
+        },
+        "beam": {
+          "$ref": "#/$defs/type"
+        }
+      },
+      "required": [
+        "wall",
+        "bearing",
+        "nonbearing",
+        "thin",
+        "partition",
+        "enclosure",
+        "column",
+        "door",
+        "window",
+        "opening",
+        "stair",
+        "unconfirmed",
+        "beam"
+      ],
+      "additionalProperties": false
+    },
+    "palette": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "const": "AutoCAD Color Index"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "mappingScope": {
+          "type": "string"
+        },
+        "colors": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]{1,3}$": {
+              "type": "string",
+              "pattern": "^#[0-9a-f]{6}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "name",
+        "reference",
+        "mappingScope",
+        "colors"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "floors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/floor"
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "$schema",
+    "schema",
+    "schemaVersion",
+    "name",
+    "sourceName",
+    "sourceSha256",
+    "units",
+    "coordinateSystem",
+    "note",
+    "typeCatalog",
+    "palette",
+    "sources",
+    "floors"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CAD structure drawing v2 — source outlines and reviewed components",
+  "$defs": {
+    "point": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polyline": {
+      "type": "object",
+      "properties": {
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "origin": {
+          "enum": [
+            "drawing",
+            "review_marker"
+          ]
+        },
+        "cadColorIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "kind": {
+          "const": "polyline"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "minItems": 2
+        },
+        "closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sourceIds",
+        "origin",
+        "cadColorIndex",
+        "kind",
+        "points",
+        "closed"
+      ],
+      "additionalProperties": false
+    },
+    "arc": {
+      "type": "object",
+      "properties": {
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "origin": {
+          "enum": [
+            "drawing",
+            "review_marker"
+          ]
+        },
+        "cadColorIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "kind": {
+          "const": "arc"
+        },
+        "center": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "start": {
+          "type": "number"
+        },
+        "end": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "sourceIds",
+        "origin",
+        "cadColorIndex",
+        "kind",
+        "center",
+        "radius",
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "text": {
+      "type": "object",
+      "properties": {
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "origin": {
+          "enum": [
+            "drawing",
+            "review_marker"
+          ]
+        },
+        "cadColorIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "kind": {
+          "const": "text"
+        },
+        "at": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "text": {
+          "type": "string"
+        },
+        "fontHeightMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "anchor": {
+          "enum": [
+            "start",
+            "middle",
+            "end"
+          ]
+        },
+        "baseline": {
+          "enum": [
+            "auto",
+            "hanging"
+          ]
+        },
+        "lineAdvanceMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "sourceIds",
+        "origin",
+        "cadColorIndex",
+        "kind",
+        "at",
+        "text",
+        "fontHeightMm",
+        "rotation",
+        "anchor",
+        "baseline"
+      ],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "handle": {
+          "type": "string"
+        },
+        "blockHandle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "blockName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "layer": {
+          "type": "string"
+        },
+        "entityType": {
+          "type": "string"
+        },
+        "colorIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "resolvedColorIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "lineType": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "handle",
+        "blockHandle",
+        "blockName",
+        "layer",
+        "entityType",
+        "colorIndex",
+        "resolvedColorIndex",
+        "lineType"
+      ],
+      "additionalProperties": false
+    },
+    "type": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "wall",
+            "enclosure",
+            "column",
+            "opening_symbol",
+            "opening",
+            "stair",
+            "unknown",
+            "beam"
+          ]
+        },
+        "layer": {
+          "type": "string"
+        },
+        "aci": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "lineType": {
+          "enum": [
+            "CONTINUOUS",
+            "DASHED"
+          ]
+        },
+        "lineWeightMm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "basis": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "kind",
+        "layer",
+        "aci",
+        "lineType",
+        "lineWeightMm",
+        "basis"
+      ],
+      "additionalProperties": false
+    },
+    "component": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "floorId": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "wall",
+            "bearing",
+            "nonbearing",
+            "thin",
+            "partition",
+            "enclosure",
+            "column",
+            "door",
+            "window",
+            "opening",
+            "stair",
+            "unconfirmed",
+            "beam"
+          ]
+        },
+        "geometryRole": {
+          "enum": [
+            "source_outline",
+            "component_outline",
+            "opening_marker",
+            "annotation"
+          ]
+        },
+        "structuralRole": {
+          "enum": [
+            "unknown",
+            "load_bearing",
+            "non_load_bearing"
+          ]
+        },
+        "material": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dimensions": {
+          "type": "object",
+          "properties": {
+            "thicknessMm": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "heightMm": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "openingWidthMm": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "thicknessMm",
+            "heightMm",
+            "openingWidthMm"
+          ],
+          "additionalProperties": false
+        },
+        "classification": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "unconfirmed",
+                "drawing_observed",
+                "user_confirmed"
+              ]
+            },
+            "basis": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "status",
+            "basis"
+          ],
+          "additionalProperties": false
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "geometry": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/polyline"
+              },
+              {
+                "$ref": "#/$defs/arc"
+              },
+              {
+                "$ref": "#/$defs/text"
+              }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "floorId",
+        "type",
+        "geometryRole",
+        "structuralRole",
+        "material",
+        "dimensions",
+        "classification",
+        "sourceIds",
+        "geometry"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "bearing"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "structuralRole": {
+                "const": "load_bearing"
+              },
+              "classification": {
+                "properties": {
+                  "status": {
+                    "const": "user_confirmed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "structuralRole": {
+                "const": "load_bearing"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "bearing"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "nonbearing"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "structuralRole": {
+                "const": "non_load_bearing"
+              },
+              "classification": {
+                "properties": {
+                  "status": {
+                    "const": "user_confirmed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "structuralRole": {
+                "const": "non_load_bearing"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "nonbearing"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "floor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "bounds": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "origin",
+        "bounds",
+        "objects"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
