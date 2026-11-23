@@ -43,6 +43,9 @@ space serve examples/two-level/output/白模.html
 | 版本锁 | `space lock --project <project.json>` |
 | 技能 | `space skills build\|check\|sync\|list` |
 | 环境 | `space setup` / `space doctor` |
+| 本地工作台 | `space studio --project <project.json> [--open]` |
+| 模型转换 | `space model convert <file.blend> --project <project.json>` |
+| 能力清单 | `space capabilities` |
 | 发布审计 | `space verify-public [--layout target] [--denylist <私有词表>]` |
 | 早期脚本 | `space run <tool-name>`，清单见 `space tools` |
 
@@ -56,6 +59,8 @@ space serve examples/two-level/output/白模.html
 | `src/cad/`、`src/checks/` | DXF 索引、数据/目录/发布边界/浏览器检查 |
 | `src/viewers/` | 白模、平面核对、设计器模板与渲染源码 |
 | `src/furniture/` | 资产 CLI、GLB 归一与公共 CC0 模型 |
+| `src/capabilities/` | 能力注册表，CLI 与工作台共用 |
+| `src/studio/`、`src/server/` | 工作台前端与本地服务 |
 | `src/legacy/` | 早期脚本与 HouseSpec 编译模板，经 `space run` 调用 |
 | `schemas/` | `space-project/v1`、`space-model/v1`、`design-sync/v1` |
 | `skills/` | 五份技能；`references/` 由 `npm run skills:build` 从 `docs/` 生成 |
@@ -72,6 +77,14 @@ space serve examples/two-level/output/白模.html
 - `data/model.json` 是唯一空间数据源；设计版本放 `data/designs/<方案>/`。
 - 生成物只写 `output/`，永不作为数据源。
 - `space.lock.json` 锁定工具版本与数据指纹；超出兼容窗口时 `space lint` 提示升级。
+
+## 本地工作台
+
+```sh
+space studio --project my-house/project.json --open
+```
+
+随包发布的前端应用，所有项目共用。按"图纸 → 数据 → 三维 → 交付"组织能力：DXF 索引、源图核对、空间数据校验、平面核对/白模、外部模型预览（GLB/GLTF/FBX/OBJ）、Blender `.blend` 转 GLB。能力在 `src/capabilities/` 注册，CLI 与工作台调用同一份实现；项目只提供数据，不写前端代码。详见 [docs/studio.md](docs/studio.md)。
 
 ## 技能
 
@@ -98,7 +111,7 @@ space skills sync --project my-house     # 安装到 my-house/.agents/skills
 ## 维护
 
 ```sh
-npm test                                  # 33 个测试
+npm test                                  # 45 个测试
 npm run skills:check
 space lint --project examples/two-level/project.json
 space build --project examples/two-level/project.json

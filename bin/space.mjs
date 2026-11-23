@@ -238,6 +238,41 @@ async function main() {
     return;
   }
 
+  if (command === 'capabilities') {
+    const {listCapabilities} = await import('../src/capabilities/index.mjs');
+    console.log(JSON.stringify(listCapabilities(), null, 2));
+    return;
+  }
+
+  if (command === 'studio') {
+    const project = projectOption();
+    if (!project) throw new Error('需要 --project');
+    const {startStudio} = await import('../src/server/studio.mjs');
+    const server = await startStudio({project, port: Number(take('--port') || 0)});
+    console.log(`工作台：${server.url}`);
+    if (flag('--open')) {
+      const opener = process.platform === 'darwin' ? ['open', [server.url]] : process.platform === 'win32' ? ['cmd', ['/c', 'start', server.url]] : ['xdg-open', [server.url]];
+      spawnSync(opener[0], opener[1], {stdio: 'ignore'});
+    }
+    console.log('Ctrl+C 结束。');
+    await new Promise(() => {});
+    return;
+  }
+
+  if (command === 'model') {
+    const action = argv.shift();
+    if (action !== 'convert') throw new Error('用法：space model convert <file.blend> --project <project.json> [--out output/model/preview.glb]');
+    const file = argv.shift();
+    if (!file) throw new Error('需要 .blend 文件');
+    const project = projectOption();
+    if (!project) throw new Error('需要 --project');
+    const {runCapability} = await import('../src/capabilities/index.mjs');
+    const r = await runCapability({project, capability: 'model.convert', params: {file, out: take('--out') || 'output/model/preview.glb'}, log: line => console.log(line)});
+    console.log(r.summary);
+    for (const o of r.outputs) console.log(o.path);
+    return;
+  }
+
   if (command === 'verify-public' || command === 'verify:public') {
     run(process.execPath, [path.join(ROOT, 'src/checks/public-surface.mjs'), ...argv]);
     return;

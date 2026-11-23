@@ -1,5 +1,25 @@
 # 变更记录
 
+## 0.3.0 — 2026-11-23
+
+### 新增
+
+- `space studio`：随包发布的本地工作台。按阶段组织能力，所有项目共用；前端由 esbuild 在启动时打包。
+- 能力注册表 `src/capabilities/`：`cad.inspect`、`cad.preview`、`model.validate`、`build.viewer`、`model.preview`、`model.convert`；CLI 与工作台调用同一实现。
+- 3D 舞台 `src/studio/views/model3d.js`：GLB/GLTF/FBX/OBJ 预览、尺度与三角面统计、线框、动画播放、自动取景与资源释放。
+- `space model convert`：调用本机 Blender 将 `.blend` 导出为 GLB。
+- `space capabilities`：输出能力注册表，供脚本与界面共用。
+- `space doctor` 增加 Blender 检测。
+
+### 变更
+
+- 新增运行时依赖 `preact`（工作台界面）；`three` 同时服务户型白模与外部模型预览。
+
+### 限制
+
+- 压缩模型（Draco/KTX2/MeshOpt）尚未接入解码器。
+- 工作台不做数据编辑，仍以 CLI 与文件为准；写入仅限 `output/`。
+
 ## 0.2.0 — 2026-11-23
 
 首个可作为独立工具安装的版本。

@@ -61,6 +61,9 @@ export async function runDoctor({project, python} = {}) {
   const chrome = await findChrome();
   add('Chrome', chrome ? 'ok' : 'warn', chrome || '未找到浏览器', chrome ? undefined : '设置 CHROME_PATH，或安装 Chrome/Chromium（只影响浏览器检查）');
 
+  const blender = process.env.BLENDER_PATH || run('which', ['blender']).out || (fs.existsSync('/Applications/Blender.app/Contents/MacOS/Blender') ? '/Applications/Blender.app/Contents/MacOS/Blender' : null);
+  add('Blender', blender ? 'ok' : 'warn', blender || '未找到（只影响 .blend 转 GLB）', blender ? undefined : '安装 Blender 或设置 BLENDER_PATH；仍可预览 GLB/FBX/OBJ');
+
   const optional = {'puppeteer-core': '浏览器检查', '@gltf-transform/core': 'GLB 资产处理', 'sharp': '图像处理'};
   const missingNpm = Object.entries(optional).filter(([name]) => !moduleAvailable(name));
   add('可选 npm 依赖', missingNpm.length ? 'warn' : 'ok', missingNpm.length ? `缺少 ${missingNpm.map(([n]) => n).join(', ')}` : '已安装', missingNpm.length ? `npm install ${missingNpm.map(([n]) => n).join(' ')}` : undefined);
