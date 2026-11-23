@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {listCapabilities, resolveInside, projectOverview, runCapability} from '../src/capabilities/index.mjs';
 import {startStudio} from '../src/server/studio.mjs';
@@ -82,8 +83,18 @@ test('文件接口只允许项目内路径', async () => {
   }
 });
 
-test('build.viewer 经能力生成白模并写入项目 output/', async () => {
-  const r = await runCapability({project: PROJECT, capability: 'build.viewer', params: {viewer: 'drawing'}});
+test('build.viewer 经能力生成白模，只写项目内 output/', async () => {
+  // 用临时副本，避免与并行用例共用示例目录
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'hpd-build-'));
+  const proj = path.join(base, 'two-level');
+  fs.mkdirSync(path.join(proj, 'data'), {recursive: true});
+  fs.copyFileSync(path.join(DIR, 'data/model.json'), path.join(proj, 'data/model.json'));
+  fs.writeFileSync(path.join(proj, 'project.json'), JSON.stringify({
+    schema: 'space-project/v1', id: 'two-level', name: '构建用例', model: 'data/model.json',
+    output: 'output', assets: path.join(DIR, '../../src/furniture/assets/catalog.json')
+  }));
+  const r = await runCapability({project: path.join(proj, 'project.json'), capability: 'build.viewer', params: {viewer: 'drawing'}});
   assert.match(r.summary, /平面核对\.html$/);
-  assert.ok(fs.existsSync(path.join(DIR, r.data.file)));
+  assert.ok(fs.existsSync(path.join(proj, r.data.file)));
+  assert.ok(!fs.existsSync(path.join(proj, '平面核对.html')), '生成物不得落到项目根');
 });
