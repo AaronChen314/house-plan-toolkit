@@ -1,6 +1,6 @@
 {
   "schema": "skills-state/v1",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "skills": {
     "cad-to-space-data": {
       "skillSha256": "bf2f970e9e24a88857d23608175f1cdb1f07c181bf4e9a4cdabb00548d4e5716",

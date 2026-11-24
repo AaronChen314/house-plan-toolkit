@@ -12,6 +12,10 @@
 
 五个技能共用 [空间工作流约定](docs/space-workflow-contract.md)。项目目录与文件格式见 [项目目录规范](docs/project-layout.md)，公开发布边界见 [发布边界](docs/public-surface.md)。
 
+## 架构与计划
+
+分层、数据关系与写入规则见 [docs/architecture.md](docs/architecture.md)；当前要做的能力与验收指标见 [docs/roadmap.md](docs/roadmap.md)。改代码前先确认改动属于哪一层：契约、领域、存储、能力、运行时、视图还是宿主。
+
 ## 代码边界
 
 - CLI 入口 `bin/space.mjs`；实现按域放在 `src/`（`cli`、`space`、`cad`、`checks`、`viewers`、`furniture`、`legacy`）。

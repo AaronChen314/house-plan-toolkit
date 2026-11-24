@@ -9,7 +9,7 @@
 需要 Node.js 20+、Python 3.10+。
 
 ```sh
-npm install -g github:AaronChen314/house-plan-toolkit#v0.2.0
+npm install -g github:AaronChen314/house-plan-toolkit#v0.3.1
 space setup          # 建 Python 虚拟环境并装依赖（装到包内 .venv）
 space doctor         # 自检 Node / Python / 依赖 / 浏览器 / 技能包
 ```
@@ -49,6 +49,17 @@ space serve examples/two-level/output/白模.html
 | 发布审计 | `space verify-public [--layout target] [--denylist <私有词表>]` |
 | 早期脚本 | `space run <tool-name>`，清单见 `space tools` |
 
+## 架构与数据
+
+工具包按依赖方向分层：契约、领域、存储、能力、运行时、视图、宿主。能力只有一份实现，CLI 与工作台都调用它；视图只读；所有写入经过存储层。
+
+数据采用"文件为事实源、SQLite 为派生索引"：原件与 JSON 可读、可 diff、可交付；几何与推导图放在项目内 `.space/project.sqlite`，删掉可以重建。设计只能引用数据集，设计之间只允许复制，不允许派生。
+
+- [docs/architecture.md](docs/architecture.md)：分层职责、三种关系、存储模型、写入纪律、决策记录
+- [docs/roadmap.md](docs/roadmap.md)：M0–M5 实现计划、验收指标与迁移安排
+
+> 分层与存储是目标架构；当前代码正在按该文档逐步迁移，目录调整见实现计划。
+
 ## 目录
 
 | 路径 | 内容 |
@@ -64,7 +75,7 @@ space serve examples/two-level/output/白模.html
 | `src/legacy/` | 早期脚本与 HouseSpec 编译模板，经 `space run` 调用 |
 | `schemas/` | `space-project/v1`、`space-model/v1`、`design-sync/v1` |
 | `skills/` | 五份技能；`references/` 由 `npm run skills:build` 从 `docs/` 生成 |
-| `docs/` | 工作流约定、项目目录规范、发布边界、出图与机电参考 |
+| `docs/` | 架构与实现计划、工作流约定、项目目录规范、发布边界、出图与机电参考 |
 | `templates/project/` | 项目骨架模板 |
 | `examples/two-level/` | 合成两层示例，用于回归 |
 | `tests/` | 目录规则、发布边界、技能包、CLI、空间关系测试 |
@@ -77,6 +88,7 @@ space serve examples/two-level/output/白模.html
 - `data/model.json` 是唯一空间数据源；设计版本放 `data/designs/<方案>/`。
 - 生成物只写 `output/`，永不作为数据源。
 - `space.lock.json` 锁定工具版本与数据指纹；超出兼容窗口时 `space lint` 提示升级。
+- 后续版本会把几何索引与推导图放入项目内 `.space/project.sqlite`；它可删除、可重建，不进版本库，也不随交付包分发。
 
 ## 本地工作台
 
