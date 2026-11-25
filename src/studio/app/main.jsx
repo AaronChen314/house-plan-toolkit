@@ -221,11 +221,30 @@ function TracePanel({projectPath, files}) {
         const windows = floors.flatMap(f => (f.windowOpenings || []).flatMap(w => (w.footprint || []).map(p => ({
           handle: w.handle || `${f.id}:${w.id}`, kind: 'window', rect: p.outer, provenance: w.provenance, confidence: w.confidence, floor: f.id
         }))));
-        setWalls([...walls, ...doors, ...windows].filter(x => Array.isArray(x.rect) && x.rect.length >= 3));
+        setWalls([...walls, ...doors, ...windows].filter(x => {
+          const ring = x.rect || x.polygon?.outer;
+          return Array.isArray(ring) && ring.length >= 3;
+        }));
       })
       .catch(() => { if (!dead) setWalls([]); });
     return () => { dead = true; };
   }, [dataset, projectPath]);
+
+  // 选中的底图如果来自 cad.vector，就用它算好的比例与原点预填，避免手动对齐。
+  useEffect(() => {
+    if (!image) return;
+    let dead = false;
+    fetch(fileUrl(projectPath, 'output/cad/source.json'))
+      .then(r => (r.ok ? r.json() : null))
+      .then(source => {
+        const meta = source?.source?.underlay;
+        if (dead || !meta || meta.file !== image) return;
+        if (Number.isFinite(meta.mmPerPx)) setMmPerPx(String(meta.mmPerPx));
+        if (Array.isArray(meta.origin)) setOrigin(meta.origin.join(','));
+      })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [image, projectPath]);
 
   useEffect(() => {
     if (!image) { setSize(null); return; }
@@ -328,7 +347,7 @@ function TracePanel({projectPath, files}) {
           <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
         ))}
         <span class="meta">实线=manual · 虚线=ai · 点线=cadvec · 红点=低置信度</span>
-        <span class="meta">虚线红 = 低置信度（&lt; 0.8），切到「判为无效」后点它可标记</span>
+        <span class="meta">切到「判为无效」后点实体即可标记</span>
       </div>
       {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
       {message && <div class="banner ok">{message}</div>}

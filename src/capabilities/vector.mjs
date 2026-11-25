@@ -56,7 +56,18 @@ export const capabilities = [
         const underlayRel = fs.existsSync(underlayStaging) ? relOf(ctx.dir, path.join(outDir, 'underlay.png')) : null;
         if (underlayRel) ctx.store.writeArtifact(underlayRel, fs.readFileSync(underlayStaging), {kind: 'image'});
 
-        const source = toCadSource(cad, {sourceFile: path.basename(src), underlay: underlayRel ? {file: underlayRel, mmPerPx: cad.mmPerUnit ?? null} : null});
+        // 底图比例与原点在 draft.json 的 underlay 里；studio 拿它自动对齐。
+        let underlayMeta = null;
+        const draftFile = path.join(staging, 'draft.json');
+        if (underlayRel && fs.existsSync(draftFile)) {
+          try {
+            const d = JSON.parse(fs.readFileSync(draftFile, 'utf8'));
+            if (d?.underlay?.mmPerPx) {
+              underlayMeta = {file: underlayRel, mmPerPx: d.underlay.mmPerPx, origin: [d.underlay.x ?? 0, d.underlay.y ?? 0], rotationDeg: 0};
+            }
+          } catch {}
+        }
+        const source = toCadSource(cad, {sourceFile: path.basename(src), underlay: underlayMeta});
         const sourceRel = relOf(ctx.dir, path.join(outDir, 'source.json'));
         const sourceWritten = ctx.store.writeArtifact(sourceRel, source, {kind: 'cad-source'});
 
