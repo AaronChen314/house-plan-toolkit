@@ -82,6 +82,32 @@ node src/checks/bundle.mjs <project.json> <包名>   # 交付包离线打开（�
 10. **性能断言分两处**：单测里宽松（只防退化成全表扫描），真实指标由 `npm run bench:index` 独占进程卡。
 11. **`skills/*/references/` 是生成物**。改 `docs/` 里被 `skills/skills.json` 引用的文件后跑 `npm run skills:build`，不要手改 references。
 
+## 分支模型（两人开发阶段）
+
+```
+feat/*  fix/*  ──合并──▶  develop  ──按需 PR（1 人 review）──▶  main  ──tag──▶  Release
+```
+
+- **`develop`**：日常集成分支，两人都可以直接推；推前必须过 pre-push 的 `npm run verify`（CI 也会在 `develop` 上跑）。
+- **`main`**：只接受从 `develop` 合入的 PR，1 人 review + CI 绿；**tag 只从 `main` 打**。这样测试拿到的东西永远来自 `main`，`develop` 坏了不影响他们。
+- **契约改动**（`src/contracts/`、`schemas/`）即使只进 `develop`，也走一次 PR 让另一位看一眼——这是唯一的串行点。
+
+### 冲突怎么处理
+
+- **只 rebase 自己还没推上去的提交**（`git pull --rebase`，首次配置 `git config pull.rebase true`）。
+- **绝不 rebase 已经推送的 `develop`**：那会改写共享历史，另一位必须 force-pull 才能同步，CI 记录也会对不上。要合别人的改动用 merge。
+- 冲突分两类：
+  - 代码/文档：正常手工解。
+  - **生成物**：`skills/*/references/*`、`skills/.bundle.json`、`examples/two-level/space.lock.json`、`package.json` 的 version —— **不要手解**，取任意一方的版本后重跑 `npm run skills:build` / `space lock`，由生成器决定内容。
+
+### 单点操作（避免两人同时改）
+
+| 操作 | 谁做 | 时机 |
+|---|---|---|
+| 改 `package.json` 版本 + `skills:build` + `space lock` | 一个人 | 只在发版提交里 |
+| 写 CHANGELOG「未发布」段 | 两人都行 | 各自追加，发版时统一整理 |
+| 契约改动 | 需要另一位 review | 随功能提交 |
+
 ## 提交前
 
 ```sh

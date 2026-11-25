@@ -8,6 +8,7 @@
 - `.github/ISSUE_TEMPLATE/`：`bug`、`feature`、`test-feedback` 三个模板。bug 强制填版本 / 平台 / `space doctor` / 复现命令；feature 强制填「落在哪一层」与「契约影响」；test-feedback 强制填 tag 与 `.skills-version`。
 - `.github/workflows/verify.yml`：macOS + Windows × Node 22/24 跑 `npm run verify`；macOS 单独跑浏览器冒烟。
 - `docs/release.md`：版本规则、发版前必跑项、tag 与预发布（`-rc.N`）流程、测试机隔离安装、回滚约定。
+- 分支模型：`develop` 集成、`main` 只收 PR、tag 只从 `main` 打；CI 现在也覆盖 `develop`，并新增 `.githooks/pre-push` 在推送前跑 `npm run verify`。冲突规则与「生成物不手解」写进 `docs/contributing.md`。
 - `.github/workflows/release.yml`：打 tag 自动发版——校验 tag 与 `package.json` 版本一致、跑门禁、`npm pack`、干净前缀试装（`space version` / `capabilities --check` / `skills check`），最后用 `gh` 建 Release 并附 tarball；带 `-` 的 tag 自动标 prerelease。测试机改从 Release 附件安装，不 clone 仓库。
 
 ### 修复

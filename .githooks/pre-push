@@ -1,0 +1,9 @@
+#!/bin/sh
+# 启用：git config core.hooksPath .githooks
+# 推送前跑完整快速门禁（约 7 秒）；急着推可以 HP_SKIP_VERIFY=1 git push。
+if [ "$HP_SKIP_VERIFY" = "1" ]; then
+  echo "pre-push：已跳过 npm run verify（HP_SKIP_VERIFY=1）"
+  exit 0
+fi
+set -e
+npm run verify --silent

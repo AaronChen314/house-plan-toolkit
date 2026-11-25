@@ -93,10 +93,11 @@ Windows 用 `~/hp/v0.7.1/Scripts/space`（前缀下是 `Scripts/` 而非 `bin/`�
 
 ## 分支与 PR
 
-- trunk-based：`main` 永远可发布；改动走 `feat/<简述>`、`fix/<简述>` 分支，PR + 1 人 review。
+- 两人阶段用 `develop` 集成：`feat/*`、`fix/*` 合入 `develop`，`main` 只接受从 `develop` 来的 PR（1 人 review + CI 绿）。
+- **tag 只从 `main` 打**：测试拿到的东西永远来自 `main`，`develop` 的中间状态不会流出去。
 - 契约改动（`src/contracts/`、`schemas/`）必须由契约负责人 review，并在 issue 里写明契约影响。
-- PR 必须过 CI；不合入未过 CI 的分支。
-- 一个 PR 一个关注点；顺手重构请另开 PR。
+- 冲突处理：只 rebase 自己未推送的提交，不 rebase 共享的 `develop`；生成物冲突重跑生成器，不手改。细节见 [开发与调试](contributing.md#分支模型两人开发阶段)。
+- 功能稳定后可以退回 trunk-based（去掉 `develop`，改动直接 PR 到 `main`）——这一步等测试反馈节奏稳定再决定。
 
 ## 回滚
 
