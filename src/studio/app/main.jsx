@@ -13,7 +13,24 @@ async function getJson(url, options) {
 
 function defaultsFor(cap) {
   const out = {};
-  for (const p of cap.params || []) out[p.key] = p.default ?? '';
+  for (const p of cap.params || []) out[p.key] = p.default ?? (p.type === 'boolean' ? false : '');
+  return out;
+}
+
+// 按契约的 type 转换：number 参数在界面上是文本框，发出去必须是数字。
+function coerceParams(cap, params) {
+  const out = {...params};
+  for (const p of cap.params || []) {
+    const value = out[p.key];
+    if (p.type === 'number') {
+      if (value === '' || value === undefined || value === null) delete out[p.key];
+      else out[p.key] = Number(value);
+    } else if (p.type === 'boolean') {
+      out[p.key] = value === true;
+    } else if (p.type === 'text' && value === '') {
+      delete out[p.key];
+    }
+  }
   return out;
 }
 
@@ -21,6 +38,7 @@ function App() {
   const [projectPath, setProjectPath] = useState(window.__STUDIO_PROJECT__ || '');
   const [project, setProject] = useState(null);
   const [caps, setCaps] = useState([]);
+  const [planned, setPlanned] = useState([]);
   const [stages, setStages] = useState([]);
   const [active, setActive] = useState('cad.inspect');
   const [paramsByCap, setParamsByCap] = useState({});
@@ -28,11 +46,18 @@ function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showIndex, setShowIndex] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  useEffect(() => { getJson('/api/capabilities').then(d => { setCaps(d.capabilities); setStages(d.stages); }).catch(e => setError(e.message)); }, []);
+  useEffect(() => {
+    getJson('/api/capabilities')
+      .then(d => { setCaps(d.capabilities); setPlanned(d.planned || []); setStages(d.stages); })
+      .catch(e => setError(e.message));
+  }, []);
   useEffect(() => { if (!projectPath) return; openProject(projectPath); }, []);
 
   const cap = caps.find(c => c.id === active);
+  const plannedCap = planned.find(p => p.id === active);
   const params = paramsByCap[active] || (cap ? defaultsFor(cap) : {});
   const setParams = (next) => setParamsByCap(prev => ({...prev, [active]: next}));
 
@@ -49,11 +74,12 @@ function App() {
 
   async function runCapability() {
     if (!project) { setError('先打开一个项目'); return; }
+    if (plannedCap) { setError(`${active} 还没有实现：${plannedCap.blockedBy}`); return; }
     setBusy(true); setError(''); setLogs([]); setResult(null);
     try {
       const d = await getJson('/api/run', {
         method: 'POST', headers: {'content-type': 'application/json'},
-        body: JSON.stringify({project: projectPath, capability: active, params})
+        body: JSON.stringify({project: projectPath, capability: active, params: coerceParams(cap, params)})
       });
       setLogs(d.logs || []);
       if (!d.ok) setError(d.error || '执行失败');
@@ -74,6 +100,8 @@ function App() {
         <h1>户型工作台</h1>
         <input type="text" value={projectPath} onInput={e => setProjectPath(e.target.value)} placeholder="项目配置文件路径，例如 my-house/project.json" />
         <button class="primary" onClick={() => openProject(projectPath)}>打开项目</button>
+        {project && <button data-testid="index-toggle" onClick={() => setShowIndex(v => !v)} class={showIndex ? 'active' : ''}>{showIndex ? '收起索引' : '几何索引'}</button>}
+        {project && <button data-testid="confirm-toggle" onClick={() => setShowConfirm(v => !v)} class={showConfirm ? 'active' : ''}>{showConfirm ? '收起确认' : '确认清单'}</button>}
         {project && <span class="meta">{project.project.id} · v{project.project.schema} · {project.files.length} 个文件</span>}
       </header>
       <div class="body">
@@ -82,7 +110,10 @@ function App() {
             <Fragment key={s.id}>
               <h2>{s.name}</h2>
               {caps.filter(c => c.stage === s.id).map(c => (
-                <button key={c.id} class={c.id === active ? 'active' : ''} onClick={() => setActive(c.id)}>{c.title}</button>
+                <button key={c.id} class={c.id === active ? 'active' : ''} title={c.plugin ? `插件：${c.plugin.name}@${c.plugin.version}` : c.id} onClick={() => setActive(c.id)}>{c.title}{c.plugin ? ' ⊕' : ''}</button>
+              ))}
+              {planned.filter(c => c.stage === s.id).map(c => (
+                <button key={c.id} data-testid={`planned-${c.id}`} class={`planned ${c.id === active ? 'active' : ''}`} onClick={() => setActive(c.id)} title={`未实现：${c.blockedBy}`}>{c.title} ·</button>
               ))}
             </Fragment>
           ))}
@@ -96,8 +127,18 @@ function App() {
                 {project.lint.errors.slice(0, 2).map(e => <div key={e.code + e.path}>{e.code} {e.path}：{e.message}</div>)}
               </div>
             )}
+            {project && showIndex && <IndexPanel projectPath={projectPath} />}
+            {project && showConfirm && <ConfirmPanel projectPath={projectPath} files={project.files || []} />}
             {!project && <div class="panel"><h3>打开一个项目</h3><p class="desc">填写 project.json 的路径（相对当前工作目录或绝对路径）。工作台只读取项目文件，生成物写入项目 output/。</p></div>}
-            {project && cap && (
+            {plannedCap && (
+              <div class="panel" data-testid="planned-panel">
+                <h3>{plannedCap.title} <span class="meta">· {plannedCap.id}</span></h3>
+                <p class="desc">{plannedCap.description}</p>
+                <div class="banner warn">未实现：{plannedCap.blockedBy}</div>
+                <p class="desc">契约已经登记（见 <code>space cap show {plannedCap.id}</code>），实现之后这里会自动出现表单，不需要改界面。</p>
+              </div>
+            )}
+            {!plannedCap && project && cap && (
               <div class="panel">
                 <h3>{cap.title}</h3>
                 <p class="desc">{cap.description}</p>
@@ -105,7 +146,9 @@ function App() {
                   {(cap.params || []).map(p => (
                     <label key={p.key}>
                       {p.label}
-                      {p.type === 'select' ? (
+                      {p.type === 'boolean' ? (
+                        <input type="checkbox" checked={params[p.key] === true} onChange={e => setParams({...params, [p.key]: e.target.checked})} />
+                      ) : p.type === 'select' ? (
                         <select value={params[p.key] ?? ''} onChange={e => setParams({...params, [p.key]: e.target.value})}>
                           {(p.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
@@ -123,12 +166,257 @@ function App() {
                 </div>
               </div>
             )}
-            {result && <Result result={result} active={active} projectPath={projectPath} />}
-            {!result && project && <div class="panel"><span class="meta">选择能力后执行。CAD 索引与模型转换会写 output/；校验与预览不写文件。</span></div>}
+            {!plannedCap && result && <Result result={result} active={active} projectPath={projectPath} />}
+            {!plannedCap && !result && project && <div class="panel"><span class="meta">选择能力后执行。CAD 索引与模型转换会写 output/；校验与预览不写文件。</span></div>}
           </div>
           <div class="log">{logs.length ? logs.join('\n') : <span class="empty">日志输出…</span>}</div>
         </main>
       </div>
+    </div>
+  );
+}
+
+// 确认清单：一次只确认一项，必须写依据；判为无效也走同一条路径。
+// 数据来自 data/datasets/<id>/dataset.json（权威文件），写入走 annotation.confirm 能力。
+function ConfirmPanel({projectPath, files}) {
+  const datasets = (files || [])
+    .map(rel => /^data\/datasets\/([^/]+)\/dataset\.json$/.exec(rel))
+    .filter(Boolean).map(m => m[1]).sort();
+  const [dataset, setDataset] = useState(datasets[0] || '');
+  const [record, setRecord] = useState(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState('');
+  const [drafts, setDrafts] = useState({});
+
+  useEffect(() => { if (!dataset && datasets.length) setDataset(datasets[0]); }, [datasets.join(',')]);
+  useEffect(() => { if (dataset) load(); }, [dataset, projectPath]);
+
+  async function load() {
+    setError(''); setRecord(null);
+    try {
+      const r = await fetch(fileUrl(projectPath, `data/datasets/${dataset}/dataset.json`));
+      if (!r.ok) throw new Error(`读取失败（HTTP ${r.status}）`);
+      setRecord(await r.json());
+    } catch (e) { setError(e.message); }
+  }
+
+  async function confirm(object, field, {invalid = false} = {}) {
+    const draft = drafts[`${object}::${field}`] || {};
+    if (!draft.value && !invalid) { setError('请先填确认值'); return; }
+    if (!draft.basis?.trim()) { setError('确认必须写依据（图纸位置、说明或测量）'); return; }
+    setBusy(`${object}::${field}`); setError('');
+    try {
+      const r = await fetch('/api/run', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({
+          project: projectPath,
+          capability: 'annotation.confirm',
+          params: {dataset, object, field, ...(invalid ? {invalid: true} : {value: draft.value}), basis: draft.basis.trim()}
+        })
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || '确认失败');
+      await load();
+    } catch (e) { setError(e.message); }
+    finally { setBusy(''); }
+  }
+
+  if (!datasets.length) {
+    return (
+      <div class="panel" data-testid="confirm-panel">
+        <h3>确认清单</h3>
+        <div class="banner warn" data-testid="confirm-empty">还没有数据集：先运行 <code>space dataset build</code>。</div>
+      </div>
+    );
+  }
+
+  const confirmed = new Map((record?.confirmations || []).map(c => [`${c.object}::${c.field}`, c]));
+  const pending = (record?.assumptions || []).filter(a => !confirmed.has(`${a.object}::${a.field}`));
+  const setDraft = (key, patch) => setDrafts(prev => ({...prev, [key]: {...(prev[key] || {}), ...patch}}));
+
+  return (
+    <div class="panel" data-testid="confirm-panel">
+      <h3>确认清单</h3>
+      <div class="toolbar">
+        <label class="meta">数据集
+          <select value={dataset} onChange={e => setDataset(e.target.value)}>
+            {datasets.map(id => <option key={id} value={id}>{id}</option>)}
+          </select>
+        </label>
+        {record && <span class="meta" data-testid="confirm-status">状态 {record.status} · 已确认 {(record.confirmations || []).length} 条 · 待确认 {pending.length} 条</span>}
+      </div>
+      {error && <div class="banner err">{error}</div>}
+      {!record && <span class="meta">读取中…</span>}
+
+      {!!pending.length && (
+        <table>
+          <thead><tr><th>对象</th><th>字段</th><th>预览值</th><th>确认值</th><th>依据（必填）</th><th /></tr></thead>
+          <tbody>
+            {pending.map(a => {
+              const key = `${a.object}::${a.field}`;
+              const draft = drafts[key] || {};
+              return (
+                <tr key={key}>
+                  <td><code>{a.object}</code></td>
+                  <td>{a.field}</td>
+                  <td class="meta">{a.value}{a.basis ? `（${a.basis}）` : ''}</td>
+                  <td><input type="text" value={draft.value ?? ''} placeholder={String(a.value)} onInput={e => setDraft(key, {value: e.target.value})} /></td>
+                  <td><input type="text" value={draft.basis ?? ''} placeholder="图纸位置 / 说明 / 测量" onInput={e => setDraft(key, {basis: e.target.value})} /></td>
+                  <td>
+                    <button disabled={busy === key} onClick={() => confirm(a.object, a.field)}>确认</button>
+                    <button disabled={busy === key} onClick={() => confirm(a.object, a.field, {invalid: true})}>无效</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+
+      {!!(record?.confirmations || []).length && (
+        <table>
+          <thead><tr><th>对象</th><th>字段</th><th>确认值</th><th>依据</th><th>时间</th><th>确认人</th></tr></thead>
+          <tbody>
+            {record.confirmations.map((c, i) => (
+              <tr key={i}>
+                <td><code>{c.object}</code></td>
+                <td>{c.field}</td>
+                <td>{c.invalid ? '（判为无效）' : String(c.value)}</td>
+                <td class="meta">{c.basis}</td>
+                <td class="meta">{String(c.at).replace('T', ' ').slice(0, 16)}</td>
+                <td class="meta">{c.actor || ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p class="desc">一次只确认一项，必须写依据；确认记录保留在 <code>dataset.json</code> 里，重建数据集不会丢。</p>
+    </div>
+  );
+}
+
+// 视口取数：先拿索引摘要，再按可见包围盒分页拉图元。
+// 索引不存在时给出重建命令，不影响其他能力。
+function IndexPanel({projectPath}) {
+  const [stat, setStat] = useState(null);
+  const [error, setError] = useState('');
+  const [view, setView] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [nextOffset, setNextOffset] = useState(null);
+  const [total, setTotal] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(0);
+  const drag = useRef(null);
+  const queryId = useRef(0);
+
+  const boundsView = (b) => {
+    const pad = Math.max((b[2] - b[0]) * 0.02, 100);
+    return {x: b[0] - pad, y: b[1] - pad, w: b[2] - b[0] + pad * 2, h: b[3] - b[1] + pad * 2};
+  };
+
+  useEffect(() => {
+    setStat(null); setError(''); setRows([]); setView(null); setTotal(null);
+    if (!projectPath) return;
+    let dead = false;
+    getJson(`/api/index?project=${encodeURIComponent(projectPath)}`)
+      .then(d => { if (dead) return; setStat(d); if (d?.present && d.bounds) setView(boundsView(d.bounds)); })
+      .catch(e => !dead && setError(e.message));
+    return () => { dead = true; };
+  }, [projectPath]);
+
+  async function fetchPage(vb, offset, {replace = false, count = false} = {}) {
+    if (!vb) return;
+    const id = ++queryId.current;
+    setBusy(true); setError('');
+    try {
+      const box = [vb.x, vb.y, vb.x + vb.w, vb.y + vb.h].map(v => v.toFixed(1)).join(',');
+      const d = await getJson(`/api/entities?project=${encodeURIComponent(projectPath)}&box=${box}&limit=2000&offset=${offset}${count ? '&count=1' : ''}`);
+      if (id !== queryId.current) return; // 视口已经变了，丢弃过期结果
+      if (!d.available) { setError(d.reason || '索引不可用'); return; }
+      setRows(prev => replace ? d.rows : prev.concat(d.rows));
+      setLoaded(prev => replace ? d.rows.length : prev + d.rows.length);
+      setNextOffset(d.nextOffset);
+      if (count) setTotal(d.total);
+      else if (replace) setTotal(null);
+    } catch (e) {
+      if (id === queryId.current) setError(e.message);
+    } finally {
+      if (id === queryId.current) setBusy(false);
+    }
+  }
+
+  useEffect(() => { if (view && stat?.present) fetchPage(view, 0, {replace: true}); }, [view?.x, view?.y, view?.w, view?.h, stat?.present]);
+
+  function zoom(e) {
+    e.preventDefault();
+    if (!view) return;
+    const k = e.deltaY > 0 ? 1.2 : 1 / 1.2;
+    const r = e.currentTarget.getBoundingClientRect();
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    const mx = view.x + fx * view.w, my = view.y + (1 - fy) * view.h;
+    const w = view.w * k, h = view.h * k;
+    setView({x: mx - fx * w, y: my - (1 - fy) * h, w, h});
+  }
+  function down(e) { drag.current = {x: e.clientX, y: e.clientY, vb: view}; e.currentTarget.setPointerCapture(e.pointerId); }
+  function move(e) {
+    if (!drag.current || !view) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const dx = (e.clientX - drag.current.x) / r.width * drag.current.vb.w;
+    const dy = (e.clientY - drag.current.y) / r.height * drag.current.vb.h;
+    setView({...drag.current.vb, x: drag.current.vb.x - dx, y: drag.current.vb.y - dy});
+  }
+
+  if (error && !stat) return <div class="panel"><h3>几何索引</h3><div class="banner err">{error}</div></div>;
+  if (!stat) return <div class="panel"><h3>几何索引</h3><span class="meta">读取中…</span></div>;
+  if (!stat.available) {
+    return (
+      <div class="panel" data-testid="index-panel">
+        <h3>几何索引</h3>
+        <div class="banner warn" data-testid="index-unavailable">{stat.reason || '当前 Node 不支持 node:sqlite'}。升级到 Node 22.5+ 后可用；其余功能不受影响。</div>
+      </div>
+    );
+  }
+  if (!stat.present) {
+    return (
+      <div class="panel" data-testid="index-panel">
+        <h3>几何索引</h3>
+        <div class="banner warn" data-testid="index-missing">尚未建立索引。运行：<code>space index rebuild --project {'<project.json>'}</code></div>
+      </div>
+    );
+  }
+  if (!stat.entities) {
+    // 图投影会先建出索引库（里面有节点、没有图元），这里要和「没有索引」分开说。
+    return (
+      <div class="panel" data-testid="index-panel">
+        <h3>几何索引</h3>
+        <div class="banner warn" data-testid="index-empty">索引已建立，但还没有图元。运行：<code>space index rebuild --project {'<project.json>'}</code></div>
+      </div>
+    );
+  }
+
+  const vb = view || boundsView(stat.bounds || [0, 0, 1000, 1000]);
+  const stroke = Math.max(vb.w / 1200, 1);
+
+  return (
+    <div class="panel" data-testid="index-panel">
+      <h3>几何索引</h3>
+      <div class="toolbar">
+        <button onClick={() => stat.bounds && setView(boundsView(stat.bounds))}>全图</button>
+        <button onClick={() => fetchPage(vb, 0, {replace: true, count: true})}>统计总数</button>
+        <button disabled={busy || nextOffset == null} onClick={() => fetchPage(vb, nextOffset)}>{nextOffset == null ? '本视口已全部加载' : '继续加载一页'}</button>
+        <span class="meta" data-testid="index-meta">{stat.entities.toLocaleString()} 个图元 · {stat.layers} 个图层 · {(stat.bytes / 1048576).toFixed(1)} MB · 视口内已加载 {loaded}{total != null ? ` / 共 ${total}` : ''}</span>
+      </div>
+      <div class="stage">
+        <svg data-testid="index-viewport" viewBox={`${vb.x} ${-(vb.y + vb.h)} ${vb.w} ${vb.h}`} onWheel={zoom}
+          onPointerDown={down} onPointerMove={move} onPointerUp={() => { drag.current = null; }}>
+          {rows.map((r, i) => (
+            <rect key={`${r.handle || i}-${i}`} x={r.minx} y={-r.maxy} width={Math.max(r.maxx - r.minx, stroke)} height={Math.max(r.maxy - r.miny, stroke)}
+              fill="none" stroke="#7d8f86" stroke-width={stroke} />
+          ))}
+        </svg>
+      </div>
+      {error && <div class="banner err">{error}</div>}
+      <p class="desc">拖动平移、滚轮缩放；每页 2000 条，只在可见范围内取数。索引摘要来自 <code>.space/project.sqlite</code>，删掉可重建。</p>
     </div>
   );
 }

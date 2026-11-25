@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {ROOT, VERSION} from '../root.mjs';
+import {writeFileAtomic} from '../store/atomic.mjs';
 
 const SKILLS_DIR = path.join(ROOT, 'skills');
 const DOCS_DIR = path.join(ROOT, 'docs');
@@ -101,7 +102,7 @@ export function buildSkills({checkOnly = false} = {}) {
         else if (fs.readFileSync(dst, 'utf8') !== content) errors.push(`${name}: references/${path.basename(doc)} 与 ${doc} 不一致，运行 space skills build`);
       } else {
         fs.mkdirSync(refDir, {recursive: true});
-        fs.writeFileSync(path.join(refDir, path.basename(doc)), content);
+        writeFileAtomic(path.join(refDir, path.basename(doc)), content);
       }
     }
 
@@ -134,7 +135,7 @@ export function buildSkills({checkOnly = false} = {}) {
     }
   }
   if (!checkOnly) {
-    fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
+    writeFileAtomic(STATE, JSON.stringify(state, null, 2) + '\n');
   } else if (!stateFile) {
     errors.push('skills/.bundle.json 缺失，运行 space skills build');
   }
@@ -153,7 +154,7 @@ export function syncSkills({target, project}) {
     fs.rmSync(out, {recursive: true, force: true});
     copyDir(src, out);
   }
-  fs.writeFileSync(path.join(dest, '.skills-version'), JSON.stringify({version: VERSION, skills: Object.keys(bundle.references), installedAt: new Date().toISOString()}, null, 2) + '\n');
+  writeFileAtomic(path.join(dest, '.skills-version'), JSON.stringify({version: VERSION, skills: Object.keys(bundle.references), installedAt: new Date().toISOString()}, null, 2) + '\n');
   return {dest, skills: Object.keys(bundle.references), version: VERSION, state};
 }
 
@@ -174,7 +175,7 @@ function copyDir(src, dst, filter = () => true) {
     if (!filter(rel)) continue;
     const s = path.join(src, rel), d = path.join(dst, rel);
     if (e.isDirectory()) copyDir(s, d, filter);
-    else if (e.isFile()) fs.copyFileSync(s, d);
+    else if (e.isFile()) writeFileAtomic(d, fs.readFileSync(s));
   }
 }
 

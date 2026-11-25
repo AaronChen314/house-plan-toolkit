@@ -58,6 +58,29 @@ export async function runDoctor({project, python} = {}) {
     add('Python 依赖', missing.length ? 'fail' : 'ok', missing.length ? `缺少 ${missing.join(', ')}` : `${PY_IMPORTS.length} 个模块可用`, missing.length ? '运行 space setup' : undefined);
   }
 
+  // 索引依赖 node:sqlite；不可用时不影响使用，只是退回「每次解析」。
+  const {INDEX_NODE_MIN, sqliteAvailable} = await import('../indexer/db.mjs');
+  const sqlite = await sqliteAvailable();
+  add('几何索引', sqlite ? 'ok' : 'warn', sqlite ? `node:sqlite 可用（v${process.versions.node}）` : `node:sqlite 不可用（v${process.versions.node}）`,
+    sqlite ? undefined : `升级到 Node ${INDEX_NODE_MIN}+ 才能建立索引；当前退化为每次解析源图`);
+
+  // 插件默认关闭；开启后报告加载结果与问题。
+  const {pluginsEnabled} = await import('../contracts/plugins.mjs');
+  const pluginOn = pluginsEnabled(process.env.SPACE_PLUGINS);
+  const {initPlugins, pluginSummary} = await import('../capabilities/index.mjs');
+  const pluginState = await initPlugins({projectDir: project ? path.dirname(path.resolve(project)) : undefined, enabled: pluginOn});
+  const plugins = pluginSummary();
+  add('能力插件', plugins.problems.length ? 'warn' : 'ok',
+    pluginOn ? `${plugins.plugins.length} 个插件 · ${pluginState.capabilities.length} 个能力${plugins.problems.length ? ` · ${plugins.problems.length} 个问题` : ''}` : '已关闭（SPACE_PLUGINS=1 开启）',
+    plugins.problems.length ? plugins.problems[0] : undefined);
+
+  // 全局索引在项目之外，只存摘要。
+  const {globalIndexFile, statGlobal} = await import('../indexer/global.mjs');
+  const global = await statGlobal();
+  add('全局索引', global.available ? 'ok' : 'warn',
+    global.available ? `${global.projects} 个项目 · ${globalIndexFile()}` : `${global.reason}（只影响跨项目检索）`,
+    global.available ? undefined : '需要 Node 22.5+；运行 space index global sync 建立');
+
   const chrome = await findChrome();
   add('Chrome', chrome ? 'ok' : 'warn', chrome || '未找到浏览器', chrome ? undefined : '设置 CHROME_PATH，或安装 Chrome/Chromium（只影响浏览器检查）');
 

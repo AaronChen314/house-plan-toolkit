@@ -14,15 +14,25 @@
 │  ├─ drawings/          图纸原件与转换件，YYYYMMDD-用途
 │  ├─ survey/            实测、拍照、确认记录
 │  └─ manifest.json      每个源文件的用途/版本/来源/指纹
-├─ data/                 数据源
-│  ├─ model.json         space-model/v1 权威空间数据
-│  ├─ designs/<A|B>/     设计版本与 design-manifest.json
+├─ data/                 权威数据
+│  ├─ datasets/<id>/     数据集：dataset.json（来源/确认记录/假设）+ model.json
+│  ├─ designs/<方案>/    design.json + versions/<seq>.json（版本链、状态、uses）
+│  ├─ model.json         兼容：单数据集项目的空间模型
 │  └─ assets/            本项目专用模型、材质、贴图
+├─ plugins/              可选：项目级能力插件（默认不加载，SPACE_PLUGINS=1 开启）
 ├─ scripts/              只属于本项目的脚本
 ├─ checks/               项目专用核查
 ├─ docs/                 方案说明、比较、交接
-└─ output/               生成物唯一出口，不入库
+├─ output/               生成物唯一出口，不入库
+│  ├─ cad/               cad-source/v1 解析产物
+│  ├─ doc/               施工图与交付清单 manifest.json
+│  ├─ render/            彩平等渲染产物与渲染记录
+│  ├─ bundle/            只读交付包（含 index.html 与哈希清单）
+│  └─ snapshot/          单文件只读快照
+└─ .space/               派生：files.json / events.jsonl / project.sqlite（不入库，可删）
 ```
+
+数据集的确认记录（`confirmations`）与设计版本的状态是**权威数据**；`.space/` 里的索引与推导图投影只是派生，删掉能重建。
 
 ```sh
 space init --id my-house --name "我的住宅"   # 生成合规骨架
@@ -46,7 +56,7 @@ space lint --project … --strict         # 警告也算失败
 | W002 | warn | 使用旧的 `design/` 目录 | 迁入 `data/designs/` |
 | W003 | warn | 缺少项目 `README.md` | 记录需求与有效资料 |
 | W004 | warn | `output/` 未被忽略 | 加入 `.gitignore` |
-| W005 | warn | 未写或超出兼容窗口的 `space.lock.json` | 运行锁版本命令 |
+| W005 | warn | 未写或超出兼容窗口的 `space.lock.json` | `space lock --project …` 刷新版本锁 |
 | W006 | warn | 项目内有 `.venv`/`venv` | 统一放 `.space/venv` |
 | W007 | warn | 缺少 `source/` | 补建并登记资料 |
 | W008 | warn | 图片不在 `source/`、`docs/`、`data/assets/`、`output/` | 归位 |
@@ -57,14 +67,17 @@ space lint --project … --strict         # 警告也算失败
 
 工具只写以下位置，其余路径需要显式确认：
 
-| 位置 | 用途 |
-|---|---|
-| `output/` | 生成物 |
-| `space.lock.json` | 版本锁 |
-| `.agents/skills/`、`.claude/skills/` | 技能同步 |
-| `.space/` | venv、缓存、临时文件 |
+| 位置 | 用途 | 谁写 |
+|---|---|---|
+| `output/cad/`、`output/doc/`、`output/render/`、`output/bundle/`、`output/snapshot/` | 生成物 | 能力（经存储层） |
+| `data/datasets/`、`data/designs/` | 数据集、确认记录、设计版本 | 能力（带 `baseHash` + `confirm`） |
+| `space.lock.json` | 版本锁 | `space lock` |
+| `.agents/skills/`、`.claude/skills/` | 技能同步 | `space skills sync` |
+| `.space/` | 文件登记、事件日志、索引与缓存、venv、临时文件 | 存储层与索引层 |
 
-`check`/`build` 不修改 `data/` 与 `source/`。这条由测试断言保证，不靠口头约定。
+- `check` / `build` 不修改 `data/` 与 `source/`；渲染与交付过程不改权威数据，这条由测试断言。
+- `plugins/` 是只读来源：工具加载但不写回；`~/.cache/house-plan/index.sqlite`（全局摘要）与 `~/.config/house-plan/plugins/`（用户级插件）都在项目之外，不随交付包分发。
+- 任何 `output/` 下的产物都不能作为能力的输入（`assertSourceNotGenerated`）。
 
 ## 规则自身的测试
 

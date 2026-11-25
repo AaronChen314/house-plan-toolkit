@@ -1,17 +1,29 @@
-# 数据格式 v1
+# 数据格式
 
-四种接口各自保留，不把一种文件当另一种解释：
+一份文件只有一种解释，不把一种 schema 当另一种用。全部 schema 在 `src/contracts/schemas.mjs` 登记，校验器在同目录的各模块里；下面是分组，不是全部字段。
 
-| 接口 | 用途 | 生成 / 消费方 |
-|---|---|---|
-| `cad-source/v1` | 图元索引，图层、颜色、文字、块路径、源摘要、原始单位 | `cad inspect` / `cad view` |
-| `space-model/v1` | 已核查空间实体、竖向关系及预览假设 | 项目数据 / 公共白模与平面核对 |
-| HouseSpec | 原设计器的墙线、房间、家具及编辑器输入 | 早期识别脚本 / `build --viewer designer` |
-| `design-sync/v1` | 已确认设计更新三维时的版本、变更、门禁和固定机位 | `sync check` / 三维同步流程 |
+| 分组 | schema | 用途 | 位置 |
+|---|---|---|---|
+| 原件 | `cad-source/v1` | 图元索引：图层、颜色、文字、块路径、源摘要 | `output/cad/` |
+| 空间 | `space-model/v1` | 已核查空间实体、竖向关系与预览假设 | `data/datasets/<id>/model.json` |
+| 空间 | `space-project/v1` | 项目配置 | `project.json` |
+| 数据 | `space-dataset/v1` | 数据集：来源、校正、确认记录、假设 | `data/datasets/<id>/dataset.json` |
+| 设计 | `space-design/v1` | 方案：引用一个数据集、版本清单 | `data/designs/<方案>/design.json` |
+| 设计 | `space-design-version/v1` | 版本：parent、forkedFrom、状态、`uses` | `data/designs/<方案>/versions/<seq>.json` |
+| 交付 | `space-sheet/v1` | 施工图图面数据（渲染前） | 内存 |
+| 交付 | `space-doc/v1` | 交付物记录（产物哈希 + 输入版本链） | `output/doc/manifest.json` 条目 |
+| 交付 | `space-doc-manifest/v1` | 交付清单 | `output/doc/manifest.json` |
+| 交付 | `space-render/v1` | 渲染记录（固定机位、输入链、确定性） | `output/render/<图种>/<方案>-<seq>.json` |
+| 交付 | `space-bundle/v1` | 交付包清单（只读、逐文件哈希） | `output/bundle/<名>/manifest.json` |
+| 交付 | `space-snapshot/v1` | 单文件快照记录（离线、不可回写） | `output/snapshot/<名>.json` |
+| 派生 | `space-lock/v1` | 版本锁与数据指纹 | `space.lock.json` |
+| 派生 | `space-files/v1` `space-events/v1` | 文件登记与事件日志 | `.space/` |
+| 派生 | `space-index/v1` | 几何索引、推导图投影 | `.space/project.sqlite` |
+| 兼容 | HouseSpec | 原设计器的墙线、房间、家具及编辑器输入 | 早期脚本 / `build --viewer designer` |
 
-JSON Schema 见 [模型](space-model.schema.json)、[项目配置](project.schema.json)、[同步清单](design-sync.schema.json)。允许扩展来源、设计变更与核查字段，不静默删除不认识的信息。Schema 查字段类型，`check` 查引用和高度，`sync check` 查同步阻断条件，`checks/data.py` 另查多边形有效性；逐图对照仍需完成。
+JSON Schema 文件只覆盖三种：[模型](space-model.schema.json)、[项目配置](project.schema.json)、[同步清单](design-sync.schema.json)；其余以上述校验器为准（`validateDataset` / `validateDesignVersion` / `validateDeliverable` / `validateRender` / `validateBundle` / `validateSnapshot` 等）。允许扩展来源、设计变更与核查字段，不静默删除不认识的信息。Schema 查字段类型，`check` 查引用和高度，`sync check` 查同步阻断条件，`checks/data.py` 另查多边形有效性；逐图对照仍需完成。
 
-同步清单的字段、风险分类和覆盖规则见 [设计到三维同步清单](../../reference/design-sync-manifest.md)。它引用项目配置和设计数据，不替代 `space-model/v1`。
+同步清单（`design-sync/v1`）的字段、风险分类和覆盖规则见 [设计到三维同步清单](../docs/design-sync-manifest.md)。它引用项目配置和设计数据，不替代 `space-model/v1`。
 
 ## 坐标与楼层
 

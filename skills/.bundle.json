@@ -1,6 +1,6 @@
 {
   "schema": "skills-state/v1",
-  "version": "0.3.2",
+  "version": "0.7.0",
   "skills": {
     "cad-to-space-data": {
       "skillSha256": "bf2f970e9e24a88857d23608175f1cdb1f07c181bf4e9a4cdabb00548d4e5716",
@@ -11,7 +11,7 @@
         "route-building.md": "848e9991524f658d62d27e3373467a69913d72b3c5bdb84db3ecadf6432d1bfd",
         "structure-format.md": "c0468594dae04891fb44d2e8776b14b0aba6ecf81f7b1114c8dd2ad182688bb8",
         "structure.schema.json": "03b28c4a1f53b86ada51c0c4131983142e4cae22a57e2314d7b0594a531fa28a",
-        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+        "README.md": "2cd64dd2fe5b87cfd12d82b6b1be3128e2625e0b1ba2c21a5934d036bfb998ef"
       }
     },
     "floor-plan-design": {
@@ -21,7 +21,7 @@
         "spec-format.md": "8fa0db53e06857c3815d5e0acaad13fb1f850e8f4178369b6616cb6f23e8911e",
         "furnishing.md": "4fc07d803197e0a93bfc76fc3414ddb5e7f18a52b504e26f297864c652ba5c51",
         "mep-rules.md": "bdf457b717004bcf1dbe735d9504d2e6c5c1ed0e6bd8dbdf08324eb9f028c4e3",
-        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+        "README.md": "2cd64dd2fe5b87cfd12d82b6b1be3128e2625e0b1ba2c21a5934d036bfb998ef"
       }
     },
     "plan-to-3d": {
@@ -29,7 +29,7 @@
       "references": {
         "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
         "spec-format.md": "8fa0db53e06857c3815d5e0acaad13fb1f850e8f4178369b6616cb6f23e8911e",
-        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+        "README.md": "2cd64dd2fe5b87cfd12d82b6b1be3128e2625e0b1ba2c21a5934d036bfb998ef"
       }
     },
     "design-to-3d-sync": {
@@ -46,7 +46,7 @@
       "references": {
         "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
         "design-image-prompts.md": "984fbcb492ab07bd411b95e4439d3b938c0159beaea3b5dee69354766beeccdb",
-        "README.md": "97be92f6d8170f7591d2cad499d5ee9c4b17f8a7402d27f53e37c3d1a9b9a7f9"
+        "README.md": "2cd64dd2fe5b87cfd12d82b6b1be3128e2625e0b1ba2c21a5934d036bfb998ef"
       }
     }
   }

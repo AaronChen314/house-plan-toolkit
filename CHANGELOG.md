@@ -1,5 +1,243 @@
 # 变更记录
 
+## 0.7.0 — 2026-11-25
+
+### 新增
+
+- 能力插件：`space-plugin/v1` 清单（`plugin.json` + 入口 `.mjs`），两个来源（项目 `plugins/`、`~/.config/house-plan/plugins/`），默认关闭、`SPACE_PLUGINS=1` 开启。加载后走同一注册表：`space cap`、`space capabilities`、工作台侧边栏自动出现，工作台按钮标 `⊕`。
+- 只读全局索引：`~/.cache/house-plan/index.sqlite`（`SPACE_GLOBAL_INDEX` 可重定向），只存项目 id、名称、路径、各类计数与工具版本，不存几何；`space index global sync|list|stat`。
+- `space plugin list|dirs`；`space doctor` 增加「能力插件」「全局索引」两项。
+
+### 契约
+
+- `src/contracts/plugins.mjs`：清单字段、id / 版本 / 入口越界校验、`pluginsEnabled`、插件 id 不得覆盖内置或计划项。
+- `src/contracts/global-index.mjs`：记录字段、`FORBIDDEN_FIELDS`（geom / geometry / points / polygon / footprint / content / model 一律拒绝）、查询串归一化。
+
+### 修复（收尾三笔账）
+
+- `src/checks/layout.mjs` W005 的修复建议原来指向不存在的 `space upgrade`，改为「重新运行 space lock」。
+- 索引的 Node 门槛收成一个常量 `INDEX_NODE_MIN`（`src/indexer/db.mjs`），`space version` 输出 `requirements: {toolkit: '>=20', index: '>=22.5.0'}`，`doctor` 与报错信息都引用它——不再出现「engines 说 20、索引要 22.5」的说法不一致。
+- 新增 `node src/checks/bundle.mjs <project.json> [包名]`：起本地只读服务打开包内 `index.html`，并用 `file://` 打开单文件快照，断言零外部请求、清单页行数与条目一致、包内逐文件哈希与清单一致。M4 的「交付包在无本机环境的机器上能打开」由结构成立变为实测。
+
+### 验收
+
+- `npm test` 232 项全绿（新增插件 5、全局索引 4）。
+- 插件：默认关闭时看不到；开启后加载、执行、`--check` 通过；覆盖内置 id 或坏清单被拒且不影响其他插件；关闭后彻底移除。
+- 全局索引：同一项目重复同步是更新而不是新增；表结构里没有任何几何列；`list` 不需要 `--project`；索引落在项目之外，项目 `store verify` 不受影响。
+- 离线验收：`PASS bundle offline · 7 个文件 · 清单页零外部请求 · 快照 file:// 打开零网络`。
+
+### 文档
+
+- README 重写：版本到 0.7.0、Node 门槛（索引需 22.5+）、按阶段重排的命令表、目录与项目侧约定同步到数据集/设计版本/交付目录。
+- `docs/project-layout.md` 补齐 `data/datasets`、`data/designs`、`output/{cad,doc,render,bundle,snapshot}`、`.space/`、`plugins/` 与写入边界表。
+- `schemas/README.md` 从「四种接口」扩为分组总表（17 份 schema），修好指向 `docs/design-sync-manifest.md` 的错误相对链接。
+- `docs/public-surface.md` 样例白名单与真实 manifest 对齐，补 P006/P007，说明运行时目录不在发布面内。
+- `docs/studio.md` 能力表按五个阶段重写，补三个专用面板与计划中能力的展示方式；新增能力的示例改成当前契约字段。
+- `docs/architecture.md` 新增「实现状态（0.7.0）」，标出 L4 运行时只有契约与锁。
+- `docs/roadmap.md` 删除 M3/M4 重复的「原计划」块，起点改为留档并指向当前进度。
+- `docs/usage.md` 修正技能数量、Node 门槛与家具资产描述。
+
+### 未完成清单（截至 0.7.0）
+
+- `doc.mep`：卡在数据契约——`space-model/v1` 没有点位（插座 / 水位 / 回路）。
+- `doc.furniture`：卡在 `detail`（层板 / 抽屉 / 挂衣区）字段约定；轮廓与柜顶有效顶面已能算。
+- `render.interior`：卡在渲染器选型（Blender / three 离屏），不属于确定性 SVG 链。
+- 存储实现切换：按 roadmap 条件搁置——等真正出现多人并发需求再评估。
+- 现有项目迁移：属使用者项目目录，仓库内不涉及。
+
+
+## 未发布（能力门面）
+
+### 新增
+
+- 计划中能力登记 `PLANNED_CAPABILITIES`（`doc.mep`、`doc.furniture`、`render.interior`）：只有契约与 `blockedBy`，不带实现；`validatePlanned` 卡住「计划项带实现」「缺阻塞原因」「id 重复」。
+- CLI 通用门面 `space cap list|show|run`：参数由契约生成（number / boolean / 文本），契约外参数直接报错；未实现能力按 `E_EXEC_NOT_IMPLEMENTED` 拒绝并带出阻塞原因。
+- 工作台门面：侧边栏显示计划中能力（置灰 + 「·」），点进去只有说明与阻塞原因，不渲染执行按钮；`/api/capabilities` 同时返回 `planned`。
+- 新错误码 `E_EXEC_NOT_IMPLEMENTED`（执行类）：区分「没登记」与「登记了但没实现」。
+
+### 变更
+
+- `space capabilities` 输出改为 `{implemented, planned}`（原来是能力数组）；`--check` 同时校验两份登记。
+- `runCapability` 与工作台运行接口对计划项返回同一条可读错误，两端说法一致。
+
+### 验收
+
+- `npm test` 223 项全绿（新增门面 6 项）。
+- 每条计划项在 CLI（`cap list` / `cap show`）与工作台（`/api/capabilities`）上都可达，且都不可执行。
+- 已实现的 22 个能力全部能从 `space cap run` 走通参数解析。
+
+
+## 未发布（M4：彩平 + 交付包 + 快照）
+
+### 新增
+
+- `src/contracts/rendering.mjs`：渲染记录（`space-render/v1`）、固定机位、基础图/风格图分离、交付包清单（`space-bundle/v1`）、只读快照（`space-snapshot/v1`）、写权限守卫。
+- `src/domain/colorplan.mjs`：确定性彩平（固定图层顺序、鞋带公式算面积、文字全部来自数据）。
+- `src/domain/bundle.mjs`：交付包条目归位、离线清单页、单文件快照 HTML（内嵌 JSON 安全转义）。
+- `src/domain/rendering.mjs`：机位指纹、条目排序去重、包完整性判定、风格参数校验。
+- 能力：`render.colorplan`、`bundle.export`、`deliver.snapshot`。
+- CLI：`space render colorplan`、`space bundle export`、`space deliver snapshot`。
+
+### 验收
+
+- `npm test` 217 项全绿（新增渲染契约 7、彩平 8、交付包 9、端到端 4）。
+- 同输入彩平两次字节一致；两个交付包的条目与哈希一致。
+- 交付包逐文件哈希与源一致；快照哈希清单包含设计版本哈希。
+- 渲染与交付过程中 `data/` 一个字节未变（写权限守卫）。
+- `render.interior` 按未知能力拒绝，`space render interior` 提示「只有契约」。
+
+### 已知缺口
+
+- `render.interior` 未实现：需要栅格渲染器，契约与风格分层已就绪。
+
+
+## 0.6.0 — 2026-11-25
+
+M3 按计划只做「契约接口 + 一种图打通」，水电图与定制家具图留在契约里，缺口写在下方。
+
+### 新增
+
+- `src/contracts/documents.mjs`：图面数据（`space-sheet/v1`）、交付物记录（`space-doc/v1`）、交付清单（`space-doc-manifest/v1`）三份契约，图层规范（顺序 / 颜色 / 线宽 / 虚线）、每种图的图层白名单、图种登记（`implemented` 判据）。
+- `src/domain/sheet.mjs`：确定性 SVG 渲染（图层分组、固定数字格式、XML 转义、无时间戳）。
+- `src/domain/sheet-projection.mjs`：模型毫米 → 图纸毫米的投影，比例阶梯与越界检查。
+- `src/domain/demolition.mjs`：模型 → 拆改图图面数据（保留 / 拆除 / 新建 / 门窗 + 尺寸 + 统计说明）。
+- `src/domain/documents.mjs`：失效判定、清单合并、摘要。
+- `src/store/documents.mjs`：交付清单读写（键排序保证字节稳定）与产物登记。
+- 能力：`doc.wall-demolition`、`doc.check`、`doc.list`。
+- CLI：`space doc render|check|list`。
+
+### 变更
+
+- 工作台按契约的 `type` 转换参数（number / boolean），不再把数字当字符串发给能力。
+- `space version` 的 schema 列表改为从契约派生，避免漏登记。
+
+### 验收
+
+- `npm test` 189 项全绿（新增契约 7、拆改数据 10、渲染 10、投影 6、端到端 6）。
+- 同一设计版本重复生成：产物哈希一致；第二次不重写文件（`unchanged`）。
+- 模型变化后 `space doc check` 标待复核并写明原因；直接重出被 `E_DATA_RULE` 拒绝，`force` 才覆盖。
+- 交付清单可回答「基于哪版数据、哪版设计、哪些确认值」。
+
+### 已知缺口（M3 未完）
+
+- `doc.mep`：`space-model/v1` 里没有点位概念（插座 / 水位 / 回路），需要先扩数据契约再出图。
+- `doc.furniture`：柜体轮廓、高度、柜顶有效顶面数据齐全，缺 `detail`（层板 / 抽屉 / 挂衣区）的字段约定。
+- 两者都已拒绝调用（`E_EXEC_UNKNOWN_CAPABILITY`），`space doc list` 会明确标注「只有契约与图层规范，未出图」。
+
+
+## 0.5.0 — 2026-11-25
+
+### 新增
+
+- `src/contracts/graph.mjs`：推导图契约。七种节点类型、三种关系（派生 / 版本 / 复制）、四种状态与状态机、派生矩阵与复制矩阵、权威文件路径（`datasetFile` / `designVersionFile`）、`validateGraph()`。
+- `src/domain/graph.mjs`：`impactOf` / `planStale` / `staleAfterChange` / `upstreamOf` 纯函数。
+- `tests/graph.test.mjs`：12 项。含「校正只影响引用了该数据集的版本」与「一千节点影响分析 < 5ms」。
+- `src/contracts/datasets.mjs`：数据集、设计方案、设计版本三种文件的形状与校验；`space-dataset/v1` 等三条 schema 登记。
+- `src/store/graph.mjs`：推导图的索引投影（唯一写入入口）。`syncGraph` / `readGraph` / `projectFromFiles` / `markStaleProjection`；一次同步一条汇总事件。
+- 能力：`dataset.build` / `dataset.diff` / `dataset.correct`（`src/capabilities/data.mjs`），`design.create|version|fork|confirm|stale`（`design.mjs`），`program.check`（`program.mjs`）。
+- `src/domain/checks.mjs`：拆改可行性、门窗净宽与开启、动线宽度的纯函数检查。
+- CLI：`space dataset build|diff|correct`、`space design create|version|fork|confirm|stale`、`space program check`、`space graph sync|show|stale`。
+- `tests/m2.test.mjs`：跨 lane 集成用例——数据集→设计→图投影→校正预演，以及 CLI 全链路。
+
+### 决定
+
+- **`markStale` 写文件，不写索引**。数据集与设计版本的状态写在 `data/` 下的权威文件里；索引的 `node.status` 只是投影，删索引不会抹掉「待复核」结论。
+- 版本不是边：版本链只记在 `node_version(parent_seq)`，`canEdge(…, 'version')` 直接拒绝。
+- 复制只允许设计之间，且不传播失效。
+- **节点状态取「最新版本」**：数据集看 `dataset.json.status`，设计看最大 `seq` 的版本状态。`graph show` / `graph stale` 会先从 `data/` 刷新投影再下结论。
+- 图投影写入只有一个入口 `src/store/graph.mjs`；能力层只改文件。
+
+### 验收
+
+- `npm test` 146 项全绿。0.4.0 之后新增 44 项：图投影 10、数据集 7、设计 6、规则 15、跨 lane 集成 6（图契约 12 项在 0.4.0 前已落地）。
+- 「校正后只有引用该数据集的设计被标待复核、复制出的方案不受影响」由集成用例覆盖。
+- 真实示例 `examples/two-level` 跑 `space program check`：0 error / 0 warning。
+
+### 修复
+
+- **写权威数据后自动刷新推导图投影**：`runCapability` 在 `sideEffects` 含 `write:data` 的能力成功后调用 `projectFromFiles`，能力结果带 `graph: {nodes, edges, forks}`，CLI 不要求再手动 `space graph sync`。投影是派生数据，刷新失败只记日志、不影响能力成功。
+- **`dataset.build` 重建保留确认记录**：`confirmations` 与 `corrections` 不再被重新解析抹掉；来源未变时状态保持不变、产物字节稳定；来源变化时只把 `confirmed` 降为 `stale` 并在摘要里提示，同时报告「确认记录指向的构件已不存在」的数量。
+
+### M2 收尾
+
+#### 新增
+
+- `annotation.confirm`：逐项确认（值 / 判为无效），必须写依据，记录时间与确认人；覆盖时保留 `previous` 历史；同内容重复确认不写盘。
+- 设计版本 `uses`：声明该版本用到的构件 handle；`design.create --uses H1,H2`，`design.version` 未显式给时继承上一版本。
+- 构件级影响：`dataset.correct` 的复核清单从「数据集节点」细化到「哪个版本用到变化的那个 handle」，且权威来自文件，不依赖索引。
+- 工作台「确认清单」面板：逐项确认、判为无效，显示依据与时间；没有数据集时给出可执行提示。
+
+#### 变更
+
+- `dataset.correct` 的 `review` 结构：`suggested` 带 `matched`/`reason`（`touches-changed` / `depends-on-dataset`）、`untouched`、`changedHandles`、`downstream`（下游产物，索引缺失时显式降级）。
+- 契约：`validateDataset` 要求每条确认必须带 `basis`；`invalid: true` 的确认可以不写值。`validateDesignVersion` 校验 `uses`。
+
+#### 验收
+
+- `npm test` 150 项全绿（新增确认 2 项、构件级影响 2 项、版本继承 1 项）。
+- 端到端：`dataset build` → `annotation confirm` → `annotation list` 显示「已确认 1 条 · 待确认 3 条」；工作台面板显示状态行。
+- 构件级：`uses: ['H1']` 的方案在 H1 变化时进复核清单，`uses: ['H2']` 的不受影响。
+
+## 0.4.0 — 2026-11-25
+
+### M1 几何索引与视口取数
+
+#### 新增
+
+- `src/indexer/`：SQLite 索引内核。schema（节点、边、版本、复制、实体、包围盒 rtree、事件、meta）、批量写入、包围盒查询、图层清单、索引摘要。
+- `src/contracts/index-query.mjs`：查询契约（包围盒、图层/类型白名单、游标分页、可选总数）。
+- 解析缓存：键为源文件哈希 + 解析器标识与版本 + 参数；命中直接读缓存，不重跑解析。
+- `space index rebuild|stat|query|layers`：可从 `cad-source/v1` 产物建库（不解析），或从 DXF 解析后建库。
+- `npm run bench:index`：五万合成图元的验收基准，未达标退出码 1（缓存命中 15ms、5000 条查询 p50 3.99ms、删索引后重建不重新解析）。
+- `cad.inspect` 先查解析缓存，命中时完全不启动 Python，产物仍经存储登记。
+- 工作台视口取数：`/api/index` 给摘要，`/api/entities` 按包围盒分页返回图元；新增「几何索引」面板，拖拽/滚轮换视口、按页加载。
+- `node src/checks/studio.mjs <project.json>`：浏览器冒烟，断言首屏不请求整包 JSON、视口请求带包围盒、窄屏无横向滚动。
+- `node` 表的最小数据集登记（`kind=dataset`），为 M2 的校正与设计留挂点。
+- `space doctor` 增加「几何索引」检查；`node:sqlite` 不可用时索引命令返回 `available: false`，其余能力退回每次解析。
+
+#### 变更
+
+- 索引是派生存储（`store.derived('index')`）：整表重建而非逐行删除，重建时间从 541ms 降到 ~290ms；每次重建只写一条汇总事件。
+- 读路径复用数据库句柄（按 mtime/size/inode 失效），工作台连续取视口不再每次开库。
+
+#### 验收
+
+- `npm test` 90 项全绿。
+- `npm run bench:index` 达标。
+- 索引不进文件登记，`space store verify` 不受影响。
+- 工作台：两万图元项目首屏只取一页视口数据，整包 JSON 请求 0 次（`node src/checks/studio.mjs`）。
+
+### M0 契约与存储骨架（已完成）
+
+详见 [docs/storage.md](docs/storage.md)。
+
+#### 新增
+
+- `src/contracts/`：错误码表（四类前缀）、数据 schema 登记表、能力契约字段与校验、存储接口签名与不变量、CLI / 工作台 / worker 传输格式。
+- `src/store/`：唯一写入入口。原子写（临时文件 + fsync + 改名）、基准哈希乐观锁、事件日志（每次写入与每次操作各一条）、artifact 内容寻址、项目写锁、`verify` / `rebuild`。
+- `src/domain/`：几何、竖向关系、模型校验、尺寸校验下沉为纯函数；`src/space/*` 保留为兼容出口，视图与测试的引用路径不变。
+- `space store verify|rebuild|events|stat`：核对登记、重建登记、导出事件日志、查看存储摘要。
+- `space capabilities --check`：能力契约 lint。
+- `docs/storage.md`：契约、存储、写入纪律与检查方式。
+- 派生存储契约 `store.derived('index' | 'cache')`：SQLite 索引与解析缓存自己管文件，存储层管位置、项目锁与一条汇总事件；为 M1 预留，避免索引层另开发一套写法。
+
+#### 变更
+
+- CLI 改为命令表驱动：`bin/space.mjs` 只做分发，命令在 `src/cli/commands/` 按域分文件，帮助文本由注册表生成，未识别参数不再静默忽略。新增命令是纯追加，不再改同一段分支。
+- 能力注册表按域拆分：`src/capabilities/{context,source,model}.mjs`，`index.mjs` 只做聚合，为 M2/M3 新增能力留出无冲突的落点。
+- 能力注册表补齐契约字段（版本、输入输出、副作用、环境依赖、幂等性、错误码），`space capabilities` 输出随之扩展。
+- 所有能力写入改经存储层：`cad.inspect` 与 `model.convert` 先写 `.space/tmp/`，再由存储搬进项目；`build.viewer` 的每个产物都登记并留事件。
+- `space init`、`space lock`、`space skills`、家具资产脚本改用存储层的原子写入；新项目骨架逐文件登记。
+- `space build --out` 必须落在项目内，否则按 `E_STORE_PATH` 拒绝。
+- 权威数据修改需要 `baseHash` 与显式确认，哈希不一致直接拒绝。
+
+#### 验收
+
+- `npm test` 71 项全绿（原有 45 项不变，新增契约 7 项、存储 12 项、构建 4 项、CLI 3 项）。
+- 静态扫描：除原子写入原语与两个浏览器冒烟脚本外，`src/`、`bin/` 无 `writeFileSync` / `appendFileSync` / `createWriteStream`；`src/domain/` 无 IO 依赖。
+- 同一空间数据两次构建产物字节一致；示例数据产物（`model.json`、`validation.json`、构建报告）与重构前字节相同。
+- `白模.html` 哈希因压缩器标识符重排变化，页面数据、体积与浏览器冒烟结果不变。
+
 ## 0.3.2 — 2026-11-24
 
 ### 文档

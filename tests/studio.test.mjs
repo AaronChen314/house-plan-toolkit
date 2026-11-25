@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {listCapabilities, resolveInside, projectOverview, runCapability} from '../src/capabilities/index.mjs';
+import {buildIndex, sqliteAvailable} from '../src/indexer/index.mjs';
 import {startStudio} from '../src/server/studio.mjs';
 
 const PROJECT = new URL('../examples/two-level/project.json', import.meta.url).pathname;
@@ -97,4 +98,70 @@ test('build.viewer 经能力生成白模，只写项目内 output/', async () =>
   assert.match(r.summary, /平面核对\.html$/);
   assert.ok(fs.existsSync(path.join(proj, r.data.file)));
   assert.ok(!fs.existsSync(path.join(proj, '平面核对.html')), '生成物不得落到项目根');
+});
+
+const sqlite = await sqliteAvailable();
+
+function indexedProject(entities) {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'hpd-studio-index-'));
+  const dir = path.join(base, 'indexed');
+  fs.mkdirSync(path.join(dir, 'data'), {recursive: true});
+  fs.mkdirSync(path.join(dir, 'output/cad'), {recursive: true});
+  fs.writeFileSync(path.join(dir, 'project.json'), JSON.stringify({
+    schema: 'space-project/v1', id: 'two-level', name: '视口用例', model: 'data/model.json', output: 'output'
+  }));
+  fs.writeFileSync(path.join(dir, 'data/model.json'), fs.readFileSync(path.join(DIR, 'data/model.json')));
+  fs.writeFileSync(path.join(dir, 'output/cad/source.json'), JSON.stringify({schema: 'cad-source/v1', source: {file: 'plan.dxf'}, entities, issues: []}));
+  return {dir, file: path.join(dir, 'project.json')};
+}
+
+test('工作台视口取数：索引摘要、包围盒分页、坏参数被拒', {skip: !sqlite && 'node:sqlite 不可用'}, async () => {
+  const entities = [];
+  for (let i = 0; i < 300; i++) {
+    const x = (i % 30) * 1000, y = Math.floor(i / 30) * 1000;
+    entities.push({id: `E${i}`, type: 'LINE', layer: i % 2 ? 'WALL' : 'DIM', points: [[x, y], [x + 800, y + 300]]});
+  }
+  const {file} = indexedProject(entities);
+  const {openStore} = await import('../src/store/index.mjs');
+  await buildIndex(openStore(file), {source: 'output/cad/source.json', op: 'test.index'});
+
+  const server = await startStudio({project: file, port: 0});
+  const q = (params) => fetch(new URL('/api/' + params, server.url));
+  try {
+    const stat = await (await q(`index?project=${encodeURIComponent(file)}`)).json();
+    assert.equal(stat.available, true);
+    assert.equal(stat.present, true);
+    assert.equal(stat.entities, 300);
+    assert.equal(stat.layers, 2);
+    assert.equal(stat.nodes.dataset, 1, '数据集节点已登记');
+
+    const page = await (await q(`entities?project=${encodeURIComponent(file)}&box=0,0,30000,4000&limit=40`)).json();
+    assert.equal(page.available, true);
+    assert.equal(page.rows.length, 40);
+    assert.equal(page.hasMore, true);
+    assert.equal(page.nextOffset, 40);
+    assert.deepEqual(Object.keys(page.rows[0]).sort(), ['handle', 'layer', 'maxx', 'maxy', 'minx', 'miny', 'type']);
+    assert.ok(!('points' in page.rows[0]), '视口取数不传完整几何');
+
+    const second = await (await q(`entities?project=${encodeURIComponent(file)}&box=0,0,30000,4000&limit=40&offset=40`)).json();
+    assert.notDeepEqual(second.rows.map(r => r.handle), page.rows.map(r => r.handle));
+
+    const counted = await (await q(`entities?project=${encodeURIComponent(file)}&box=0,0,30000,4000&limit=5&count=1`)).json();
+    assert.ok(counted.total > 40);
+
+    const full = JSON.stringify(entities);
+    assert.ok(JSON.stringify(page).length < full.length / 3, '一页视口数据应远小于整包 JSON');
+
+    const bad = await q(`entities?project=${encodeURIComponent(file)}&box=1,2`);
+    assert.equal(bad.status, 400);
+    assert.match((await bad.json()).error, /box/);
+
+    const missing = await q('entities?box=0,0,1,1');
+    assert.equal(missing.status, 400);
+
+    const noIndex = await q(`index?project=${encodeURIComponent(path.join(DIR, 'project.json'))}`);
+    assert.equal(noIndex.status, 200);
+  } finally {
+    await server.close();
+  }
 });

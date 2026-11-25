@@ -5,7 +5,11 @@ import http from 'node:http';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {ROOT} from '../root.mjs';
-import {listCapabilities, runCapability, projectOverview, STAGES, resolveInside} from '../capabilities/index.mjs';
+import {initPlugins, listCapabilities, listPlanned, pluginSummary, runCapability, projectOverview, STAGES, resolveInside} from '../capabilities/index.mjs';
+import {pluginsEnabled} from '../contracts/plugins.mjs';
+import {openStore} from '../store/index.mjs';
+import {queryIndex, statIndexFor} from '../indexer/build.mjs';
+import {queryProblems} from '../contracts/index-query.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const STUDIO = path.join(ROOT, 'src/studio');
@@ -42,6 +46,11 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
   const css = fs.readFileSync(path.join(STUDIO, 'styles.css'), 'utf8');
   const defaultProject = project ? path.resolve(project) : '';
 
+  await initPlugins({
+    projectDir: defaultProject ? path.dirname(defaultProject) : undefined,
+    enabled: pluginsEnabled(process.env.SPACE_PLUGINS)
+  });
+
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, `http://${req.headers.host || host}`);
@@ -55,7 +64,7 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
       if (req.method === 'GET' && p === '/styles.css') return send(res, 200, css, MIME['.css']);
 
       if (req.method === 'GET' && p === '/api/capabilities') {
-        return send(res, 200, JSON.stringify({stages: STAGES, capabilities: listCapabilities()}));
+        return send(res, 200, JSON.stringify({stages: STAGES, capabilities: listCapabilities(), planned: listPlanned(), plugins: pluginSummary()}));
       }
 
       if (req.method === 'GET' && p === '/api/project') {
@@ -73,6 +82,35 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
         const type = MIME[path.extname(abs).toLowerCase()] || 'application/octet-stream';
         res.writeHead(200, {'content-type': type, 'cache-control': 'no-store'});
         return fs.createReadStream(abs).pipe(res);
+      }
+
+      // 索引摘要：大图纸的首屏只拿这个，不再传完整 JSON。
+      if (req.method === 'GET' && p === '/api/index') {
+        const file = url.searchParams.get('project');
+        if (!file) return send(res, 400, JSON.stringify({error: '缺少 project'}));
+        const store = openStore(path.resolve(file));
+        return send(res, 200, JSON.stringify(await statIndexFor(store)));
+      }
+
+      // 视口取数：按包围盒分页返回图元，工作台滚动加载。
+      if (req.method === 'GET' && p === '/api/entities') {
+        const file = url.searchParams.get('project');
+        if (!file) return send(res, 400, JSON.stringify({error: '缺少 project'}));
+        const rawBox = url.searchParams.get('box');
+        const box = rawBox ? rawBox.split(',').map(v => Number(v.trim())) : undefined;
+        const query = {
+          dataset: url.searchParams.get('dataset') || undefined,
+          box,
+          layers: url.searchParams.get('layer') || undefined,
+          types: url.searchParams.get('type') || undefined,
+          limit: url.searchParams.get('limit') || undefined,
+          offset: url.searchParams.get('offset') || undefined,
+          count: ['1', 'true'].includes(url.searchParams.get('count') || '')
+        };
+        const problems = queryProblems(query);
+        if (problems.length) return send(res, 400, JSON.stringify({error: problems.join('；'), problems}));
+        const store = openStore(path.resolve(file));
+        return send(res, 200, JSON.stringify(await queryIndex(store, query)));
       }
 
       if (req.method === 'POST' && p === '/api/run') {

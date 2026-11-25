@@ -15,6 +15,7 @@ import os from 'os';
 import path from 'path';
 import { pathToFileURL, fileURLToPath } from 'url';
 import { NodeIO } from '@gltf-transform/core';
+import { writeFileAtomic } from '../store/atomic.mjs';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, dequantize, textureCompress } from '@gltf-transform/functions';
 
@@ -51,7 +52,7 @@ function readCatalog() {
 function writeCatalog(c) {
   c.updated = new Date().toISOString().slice(0, 10);
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  fs.writeFileSync(CATALOG, JSON.stringify(c, null, 2) + '\n');
+  writeFileAtomic(CATALOG, JSON.stringify(c, null, 2) + '\n');
 }
 
 function newIO() {
@@ -158,7 +159,7 @@ async function add() {
       fs.mkdirSync(path.dirname(p2), { recursive: true });
       const buf2 = Buffer.from(await (await fetch(url, { headers: { 'user-agent': 'house-plan-designer/furniture3d' } })).arrayBuffer());
       bytes += buf2.length;
-      fs.writeFileSync(p2, buf2);
+      writeFileAtomic(p2, buf2);
     }
     log(`↓ ${meta.title} · ${meta.license?.name} · gltf+include ${(bytes / 1024).toFixed(0)}KB（${Object.keys(entries).length} 个文件）`);
     doc = await io.read(path.join(dir, 'model.gltf'));
@@ -187,7 +188,7 @@ async function add() {
   const out = path.join(OUT_DIR, `${as}.glb`);
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const bytes = await io.writeBinary(doc);
-  fs.writeFileSync(out, Buffer.from(bytes));
+  writeFileAtomic(out, Buffer.from(bytes));
 
   const materials = doc.getRoot().listMaterials().map((m) => m.getName());
   const tintList = tint != null
@@ -396,7 +397,7 @@ function patch() {
     s = s.slice(0, end) + '\n' + runtimeJS(cat, external) + '\n' + s.slice(end);
   }
 
-  fs.writeFileSync(tpl, s);
+  writeFileAtomic(tpl, s);
   const kb = (n) => (n / 1024).toFixed(0) + 'KB';
   log(`✓ 已写入 ${path.relative(ROOT, tpl)}：${kb(before)} → ${kb(s.length)}（模型${external ? '外链 assets/furniture/' : '内嵌 base64'}）`);
   for (const [id, m] of bound) log(`   ${(m.keys || []).join(',').padEnd(18)} ← ${id} (${m.size[0]}×${m.size[2]}×${m.size[1]}mm)`);

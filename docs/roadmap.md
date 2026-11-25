@@ -1,12 +1,12 @@
 # 实现计划
 
-基于 `docs/architecture.md` 的分层与存储方案，把现有 v0.3.1 的工具包逐步演进到可追溯的数据与交付链路。
+基于 [架构设计](architecture.md) 的分层与存储方案，把工具包演进到可追溯的数据与交付链路。当前版本 **0.7.0**：M0–M2 完成，M3/M4 各剩一个需要新契约或新链路的图种，M5 两项落地。起点与逐项进度见下，未完成清单在文末。
 
-## 起点
+## 起点（0.3.1，留档）
 
-已经具备：CLI 与工作台共用的能力注册表、DXF 索引、空间数据校验、平面与白模生成、外部模型预览、Blender 转 GLB、目录与发布门禁。
+当时具备：CLI 与工作台共用的能力注册表、DXF 索引、空间数据校验、平面与白模生成、外部模型预览、Blender 转 GLB、目录与发布门禁。
 
-还缺：统一的存储入口、几何索引与视口查询、数据集与校正流程、推导图与失效传播、设计版本管理、施工图生成、只读交付快照。
+当时还缺：统一的存储入口、几何索引与视口查询、数据集与校正流程、推导图与失效传播、设计版本管理、施工图生成、只读交付快照。这些在 M0–M2 与 M4 中已分别落地。
 
 ## 原则
 
@@ -15,7 +15,11 @@
 - 先索引后数据库权威：数据库先当索引与缓存，等确实需要多人并发再切换权威模式。
 - 每个里程碑都要有可复现的验收数字，不靠"看起来更快"。
 
-## M0 契约与存储骨架（目标 0.4.0）
+## M0 契约与存储骨架（0.4.0）— 已完成
+
+落地情况见 [契约与存储](storage.md)。交付物：`src/contracts/`（错误码、schema 登记、能力契约、存储接口、传输格式）、`src/store/`（原子写、基准哈希、事件日志、内容寻址、verify/rebuild）、`src/domain/`（几何、竖向、模型校验、尺寸校验）、能力契约补字段、`space store verify|rebuild|events|stat`。
+
+验收结果：`npm test` 71 项全绿（原有 45 项不变，新增 26 项）；静态扫描 0 处绕过存储的写入；每次写入都有事件且与磁盘哈希一致；两次构建产物字节一致；示例数据产物（`model.json`、`validation.json`、构建报告）与重构前字节相同，`白模.html` 因压缩器标识符重排哈希变化（数据与行为不变）。
 
 目标：把读写收进一个入口，让后续能力不再各自碰文件。
 
@@ -36,28 +40,49 @@
 
 风险：抽取纯函数时容易把 IO 带进去；用"领域层禁止 import fs/child_process/http"的静态检查兜底。
 
-## M1 几何索引与视口取数（目标 0.4.0 收尾）
+## M1 几何索引与视口取数（0.4.0）— 已完成
+
+前置准备（已完成）：CLI 改为命令表驱动、能力注册表按域拆分、`store.derived()` 派生存储契约落定，三条 lane 的文件边界已不重叠。
 
 目标：解析一次、查询毫秒级、工作台不再整包加载。
 
-交付：
+三条 lane 全部落地：
 
-- SQLite schema：节点、边、版本、复制、实体、包围盒索引、事件。
-- 解析缓存：键为源哈希、解析器与版本、参数；命中直接读缓存。
-- `cad.inspect` 改为先查索引；`space index rebuild/stat/query`。
-- 工作台按视口取实体，分页返回；大图纸不再一次加载全部。
-- 数据集与设计的最小节点登记（先不做校正流程）。
+- [x] SQLite schema：节点、边、版本、复制、实体、包围盒索引、事件（`src/indexer/schema.mjs`）。
+- [x] 解析缓存：键为源哈希、解析器与版本、参数；命中直接读缓存。
+- [x] `space index rebuild/stat/query/layers`。
+- [x] `cad.inspect` 先查解析缓存，命中不启动 Python。
+- [x] 工作台按视口取实体，分页返回；首屏不再传完整 JSON。
+- [x] 数据集最小节点登记（`node` 表，`kind=dataset`；设计节点留给 M2）。
 
-验收指标（本机已测基准）：
+验收指标（本机已测基准，第二版）：
 
-- 五万图元：解析 2.5 秒 → 命中缓存 50 毫秒以内。
-- 包围盒查询五千条：5 毫秒以内。
-- 工作台首次打开大图纸：不再传输完整 JSON；内存与首屏时间明显下降。
-- 删除 `.space/` 后重建索引：不重新解析源文件，结果与删除前一致。
+- 五万图元：解析调用只发生一次；解析缓存命中 15ms（门槛 50ms）。
+- 包围盒查询五千条：p50 3.99ms、p95 4.43ms（门槛 p50 < 5ms）。
+- 删除索引文件后重建：命中解析缓存，不重新解析；结果与重建前一致。
+- 工作台首屏：两万图元项目只请求一页（2000 条）视口数据，整包 JSON 请求 0 次；`node src/checks/studio.mjs <project.json>` 复现。
 
-风险：Node 20 没有内置 sqlite；先用 Node 22+ 内置模块，低版本回退 `better-sqlite3` 或纯文件缓存，并在自检里说明。
+命令：`npm run bench:index` 复现上述数字，未达标退出码 1。
 
-## M2 数据集、校正与设计版本（目标 0.5.0）
+风险（已处理）：Node 20 没有内置 sqlite。现在用 Node 22.5+ 的 `node:sqlite`；低版本不报死，而是 `space doctor` 提示、索引命令返回 `available: false`、其余能力退回每次解析。
+
+## M2 数据集、校正与设计版本（0.5.0）— 已完成
+
+前置准备（已完成）：推导图契约（`src/contracts/graph.mjs`）、影响面纯函数（`src/domain/graph.mjs`）、`markStale` 写文件不写索引的决定，均已落定并有用例。四条 lane 的文件边界见 [契约与存储](storage.md#推导图与失效传播m2-契约)。
+
+进度（四条 lane 已并行落地）：
+
+- [x] `dataset.build`：源索引生成数据集与模型草稿，推断值标 `preview`。
+- [x] `dataset.diff`：任意两个数据集的结构化差异。
+- [x] `dataset.correct`：校正预演，输出图元差异与建议复核清单（只读）。
+- [x] `design.create` / `design.fork` / `design.version`（另加 `confirm` / `stale`）：设计只引用数据集，复制只记来源。
+- [x] `program.check`：拆改可行性、净空与动线检查。
+- [x] 失效传播：图投影、影响面、失效预演；`graph stale` 可算「该标谁」。
+- [x] 写权威数据后自动刷新投影（能力层统一处理，不再要求手动 `graph sync`）。
+- [x] `dataset.build` 重建保留确认记录；来源变化只降为待复核。
+- [x] `annotation.confirm`：逐项确认（值 / 判为无效），必须写依据，保留覆盖历史。
+- [x] 构件级影响：设计版本用 `uses` 声明用到的 handle，校正后按 handle 求交给出复核清单。
+- [x] 工作台确认清单：逐项确认、判为无效、显示依据与时间，不做批量静默通过。
 
 目标：覆盖"校正版图纸 → 受影响清单 → 人确认 → 新设计版本"的真实链路。
 
@@ -71,26 +96,36 @@
 - `program.check`：拆改可行性标记、净空与动线检查。
 - 失效传播：上游变化后沿推导图标记待复核，工作台给出确认清单。
 
-验收：
+验收结果：
 
-- 设计派生设计的边被契约与测试双重拒绝。
-- 校正一个房间的墙位后，只有引用该构件的设计版本被标记，未受影响的保持不变。
-- 影响分析在一千节点规模下 5 毫秒以内。
+- 设计派生设计的边被契约与测试双重拒绝（`validateGraph` + `canEdge`）。
+- 校正后只有用到变化构件的设计版本进复核清单：`uses: ['H1']` 的方案受影响，`uses: ['H2']` 的不受影响，未声明 `uses` 的按「依赖整个数据集」保守标记。
+- 影响分析一千节点中位 < 5ms（`tests/graph.test.mjs`）。
 - 复制方案后修改原方案，副本不受影响；两者都只依赖数据集。
 
 风险：用户确认流程容易做成"点一下全通过"；必须逐项带依据与时间，不提供批量静默确认。
 
-## M3 施工图（目标 0.6.0）
+## 能力门面（跨里程碑，持续）
+
+- [x] 计划中能力登记（`PLANNED_CAPABILITIES`）：`doc.mep`、`doc.furniture`、`render.interior` 三项目前只有契约与阻塞原因。
+- [x] CLI 通用门面 `space cap list|show|run`：参数由契约生成，未实现能力按 `E_EXEC_NOT_IMPLEMENTED` 拒绝。
+- [x] 工作台门面：计划项置灰不可执行，面板只显示说明与阻塞原因。
+- [x] `space capabilities --check` 同时校验两份登记，防「能做」与「说能做」不一致。
+
+## M3 施工图（0.6.0）— 部分完成并发布
 
 目标：拆改图、水电图、定制家具图从设计版本生成，可追溯、可复核。
 
-交付能力：
+契约先行（已完成）：图面数据、图层规范、交付物记录、交付清单四份契约（`src/contracts/documents.mjs`），三种图种的图层白名单，以及「实现了才注册能力」的判据。
 
-- `doc.wall-demolition`：保留、拆除、新建墙体与尺寸，标注依据。
-- `doc.mep`：点位与管线路由草案，未确认的接入标高标待核。
-- `doc.furniture`：定制家具立面与内部格局，柜顶关联有效顶面。
-- 模板与图层规范：同一设计版本重复生成结果一致（哈希可比）。
-- 交付清单：每份施工图记录输入版本链与生成参数。
+进度：
+
+- [x] 图框、图层规范与确定性渲染：同输入产物字节相同；比例从固定阶梯取，投影后越界拒绝出图。
+- [x] `doc.wall-demolition`：保留 / 拆除 / 新建墙体与尺寸，标注依据来自数据集确认值。
+- [x] 交付清单：每条记录带输入版本链（数据集 / 设计版本 / 模型 / 确认值 / 参数）。
+- [x] 设计版本变化后标待复核，重出需要显式 `force`。
+- [ ] `doc.mep`：阻塞在数据契约——`space-model/v1` 没有点位（插座 / 水位 / 回路）。
+- [ ] `doc.furniture`：阻塞在 `detail`（层板 / 抽屉 / 挂衣区）的字段约定；轮廓与柜顶有效顶面已能算。
 
 验收：
 
@@ -100,18 +135,19 @@
 
 风险：施工图容易被当成"画得好看"的产物；先把尺寸、依据、版本链做对，再谈表现。
 
-## M4 渲染与交付（目标 0.7.0）
+## M4 渲染与交付（0.7.0）— 部分完成
 
 目标：在几何锁定之后做表现层，并生成客户可离线查看的交付包。
 
-交付能力：
+进度：
 
-- `render.colorplan`：确定性彩平，文字与尺寸由数据生成。
-- `render.interior`：固定机位效果图，基础图锁几何、风格图只管材质光线。
-- `bundle.export`：选定设计版本与下游产物，生成只读交付包与哈希清单。
-- `deliver.snapshot`：单文件只读快照，离线打开，不能回写。
+- [x] 契约：渲染记录、固定机位、基础图/风格图分离、交付包清单、快照记录、写权限守卫。
+- [x] `render.colorplan`：确定性彩平，文字与面积由数据生成，重复生成哈希一致。
+- [x] `bundle.export`：只读交付包 + 逐文件哈希清单 + 离线可看的 index.html。
+- [x] `deliver.snapshot`：单文件快照，内嵌数据与哈希清单，`writable: false`。
+- [ ] `render.interior`：只有契约——需要栅格渲染器（Blender / three 离屏），不属于确定性 SVG 链。
 
-验收：
+验收（已达成，离线打开为实测）：
 
 - 交付包在无本机环境的机器上能打开。
 - 快照中的几何与数据哈希和源项目一致。
@@ -119,7 +155,18 @@
 
 风险：大贴图与大模型让单文件膨胀；默认外置资源目录，单文件模式设体积上限。
 
-## M5 扩展与跨项目（暂不定版本）
+## M5 扩展与跨项目（0.7.0）— 已完成（存储切换按条件搁置）
+
+进度：
+
+- [x] 能力插件：默认关闭（`SPACE_PLUGINS=1`），项目 `plugins/` 与 `~/.config/house-plan/plugins/` 两个来源；清单校验、id 冲突拒载、加载失败不影响内置能力；加载后自动出现在 `space cap`、`space capabilities`、工作台侧边栏。
+- [x] 只读全局索引：`~/.cache/house-plan/index.sqlite`（可用 `SPACE_GLOBAL_INDEX` 重定向），只存项目摘要与计数，不存几何；`space index global sync|list|stat`。
+- [x] 只读全局索引（0.7.0 实测：`space index global sync|list|stat`）。
+- [ ] 存储实现切换：**不做**，直到真的出现多人并发需求（与架构文档的决策一致）。
+- 0.7.0 收尾：W005 提示改为真实命令、索引 Node 门槛收敛为 `INDEX_NODE_MIN`、交付包离线打开改为实测（`src/checks/bundle.mjs`）。
+- 暂不做：实时协作、云端同步、移动端编辑。
+
+原计划（留档）：
 
 - 能力插件：第三方按契约注册，自动进入 CLI 与工作台。
 - 只读全局索引：跨项目检索摘要，不复制几何。
@@ -139,6 +186,20 @@
 
 迁移前后对比一次几何数量与浏览器检查结果，确认没有静默丢构件。
 
+## 未完成清单（截至 0.7.0）
+
+里程碑 M0–M2 完成，M3/M4 各剩一个需要**新数据契约或新链路**的图种，M5 两项落地、第三项按条件搁置。
+
+| 项 | 卡点 |
+|---|---|
+| `doc.mep` | `space-model/v1` 没有点位模型（插座 / 水位 / 回路） |
+| `doc.furniture` | 缺 `detail`（层板 / 抽屉 / 挂衣区）字段约定 |
+| `render.interior` | 需要栅格渲染器（Blender / three 离屏） |
+| 存储实现切换 | 等多人并发需求；与「文件是事实源」的决策冲突，不提前做 |
+| 现有项目迁移 | 属使用者项目目录，仓库内不涉及 |
+
+这张表就是下一步的输入：前两项要的是数据契约决策，第三项要的是技术选型。
+
 ## 每步的验证命令
 
 ```sh
@@ -148,14 +209,26 @@ space verify-public --denylist ~/.config/house-plan/denylist.txt
 space lint --project examples/two-level/project.json
 space build --project examples/two-level/project.json
 node src/checks/white-model.mjs examples/two-level/output/白模.html
+node src/checks/studio.mjs <project.json>          # 工作台视口取数冒烟
+node src/checks/bundle.mjs <project.json> <包名>    # 交付包离线打开冒烟
 ```
 
-新增存储与索引后补充：
+存储（M0 已可用）：
 
 ```sh
 space store verify --project examples/two-level/project.json
-space index rebuild --project examples/two-level/project.json
-space index stat --project examples/two-level/project.json
+space store rebuild --project examples/two-level/project.json
+space store events --project examples/two-level/project.json --limit 20
+space capabilities --check
+```
+
+索引（M1，示例项目没有 DXF，用 `--source` 指向任意 `cad-source/v1` 文件）：
+
+```sh
+space index rebuild --project <project.json> --source output/cad/source.json
+space index stat --project <project.json>
+space index query --project <project.json> --box 0,0,5000,5000 --limit 100
+npm run bench:index
 ```
 
 ## 交付节奏

@@ -143,7 +143,7 @@ export function lintProject(projectPath) {
     else {
       const locked = String(l.value?.toolkit || '');
       if (!locked) add(warnings, 'W005', 'space.lock.json', '缺少 toolkit 版本');
-      else if (!inCompatibilityWindow(locked, current)) add(warnings, 'W005', 'space.lock.json', `锁定 ${locked}，当前 CLI ${current}，超出兼容窗口（同 major 且 minor 差 ≤1）`, 'space upgrade 后重新 lock');
+      else if (!inCompatibilityWindow(locked, current)) add(warnings, 'W005', 'space.lock.json', `锁定 ${locked}，当前 CLI ${current}，超出兼容窗口（同 major 且 minor 差 ≤1）`, '重新运行 space lock --project project.json 刷新版本锁');
     }
   }
 

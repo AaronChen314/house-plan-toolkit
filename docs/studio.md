@@ -14,30 +14,48 @@ space studio --project my-house/project.json --open
 
 | 阶段 | 能力 | 读写 |
 |---|---|---|
-| 图纸 | `cad.inspect` DXF 图元索引 | 写 `output/cad/` |
-| 图纸 | `cad.preview` 源图核对 | 只读 |
-| 数据 | `model.validate` 空间数据校验 | 只读 |
-| 三维 | `build.viewer` 平面核对 / 白模 | 写 `output/` |
-| 三维 | `model.preview` GLB/GLTF/FBX/OBJ 预览 | 只读 |
-| 三维 | `model.convert` `.blend` → GLB | 写 `output/` |
+| 图纸 | `cad.inspect`、`cad.preview` | 写 `output/cad/` / 只读 |
+| 数据 | `dataset.build\|diff\|correct`、`annotation.confirm`、`program.check`、`model.validate` | 前两者写 `data/`，其余只读 |
+| 设计 | `design.create\|version\|fork\|confirm\|stale` | 写 `data/designs/` |
+| 三维 | `build.viewer`、`model.preview`、`model.convert` | 写 `output/` / 只读 |
+| 交付 | `doc.*`、`render.colorplan`、`bundle.export`、`deliver.snapshot` | 写 `output/` |
 
-`build.viewer` 复用 CLI 的构建实现；`model.preview` 与白模共用同一个 three.js 舞台。
+**计划中**（契约已登记、不可执行，置灰显示并给出阻塞原因）：`doc.mep`、`doc.furniture`、`render.interior`。
+
+三个专用面板：
+
+- **几何索引**：按视口分页取图元（`/api/entities`），首屏不传整包；没建索引时给出重建命令。
+- **确认清单**：逐项确认数据集里的假设值，必须写依据，可判为无效。
+- **能力表单**：参数控件由 `params[].type` 生成（text / path / output / select / number / boolean），执行结果与日志在下方面板。
+
+`build.viewer` 复用 CLI 的构建实现；`model.preview` 与白模共用同一个 three.js 舞台。插件能力加载后出现在同一侧边栏（带 `⊕` 标记）。
 
 ## 新增一个能力
 
+能力写在自己的域文件里（`src/capabilities/<域>.mjs`），在 `index.mjs` 加一行展开；界面与 CLI 自动出现。
+
 ```js
 {
-  id: 'cad.inspect',
-  stage: 'source',                 // source | data | design | model | delivery
-  title: 'DXF 图元索引',
+  id: 'demo.thing',
+  version: '1.0.0',
+  stage: 'data',                   // source | data | design | model | delivery
+  title: '示例能力',
   description: '显示在面板说明里',
-  params: [{key: 'dxf', label: 'DXF 文件', type: 'path', required: true}],
+  params: [{key: 'file', label: '文件', type: 'path', required: true}],
+  inputs: {file: 'cad-source/v1'},
+  outputs: {},
+  sideEffects: ['none'],           // none | write:artifact | write:data | write:index
+  requires: [],
+  idempotent: true,
+  errors: ['E_EXEC_PARAM'],        // 只能引用 contracts/errors.mjs 已登记码
   async run(ctx, params) {
-    // ctx.file / ctx.dir / ctx.python / ctx.log / ctx.root
-    // 只写 ctx.outputDir；返回 {summary, outputs:[{path, kind}], data}
+    // ctx.file / ctx.dir / ctx.store / ctx.python / ctx.log / ctx.root
+    // 写项目只经 ctx.store；返回 {summary, outputs:[{path, kind}], data}
   }
 }
 ```
+
+`space capabilities --check` 会校验字段与错误码。只有契约、还没实现的写在 `PLANNED_CAPABILITIES`（`src/contracts/capability.mjs`），两端显示为置灰。
 
 约定：
 

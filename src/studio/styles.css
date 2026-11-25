@@ -44,3 +44,9 @@ code{font:12px/1.4 ui-monospace,Menlo,monospace;background:#f1f4f5;padding:1px 4
 .log .empty{color:#7f919b}
 .outputs a{color:var(--accent)}
 .err{color:var(--err)}
+
+/* 计划中的能力：门面照常显示，但明确不可执行 */
+nav button.planned {
+  opacity: 0.55;
+  font-style: italic;
+}

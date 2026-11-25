@@ -2,11 +2,11 @@
 
 将 CAD 核查、空间数据、平面核对、三维白模、家具资产和交付检查放在同一个目录。各项目提供自己的图纸、数据及配置，公共模板按配置加载空间关系和家具资产。
 
-先看 [数据格式](../schemas/README.md)，再按下面的命令运行。三个领域 skill 负责读图与设计判断，`design-to-3d-sync` 负责设计版本到三维的交接和阻断检查，`design-image-render` 负责基础图与风格图的出图和验收，工具包负责可重复执行的处理与展示；颜色、图块名称和识别结果仍需结合当前图纸核查。
+先看 [数据格式](../schemas/README.md)，再按下面的命令运行。五份技能分工：三份领域技能负责读图、布局与三维，`design-to-3d-sync` 负责设计版本到三维的交接和阻断检查，`design-image-render` 负责基础图与风格图的出图和验收；工具包负责可重复执行的处理与展示，颜色、图块名称和识别结果仍需结合当前图纸核查。
 
 ## 首次安装
 
-从仓库根目录执行（Node.js 20+、Python 3.10+）：
+从仓库根目录执行（Node.js 20+、Python 3.10+；几何索引需要 Node 22.5+）：
 
 ```sh
 npm ci
@@ -16,7 +16,7 @@ python3 -m venv .venv
 
 Windows 使用 `.venv/Scripts/python.exe`。Python 命令会优先使用包内虚拟环境，也可以设置 `SPACE_PYTHON`。浏览器检查需要 Chrome/Chromium，自动发现或通过 `CHROME_PATH` 指定；生成 HTML 本身不需要浏览器。
 
-工具包可整个复制到其他位置；依赖重新安装即可。所有 CLI 输入路径相对当前工作目录，`project.json` 里的数据、输出、资产目录相对该配置文件。包内只有一个设计器模板和一份模型资产，旧路径为兼容入口。复制时保留目录内符号链接，或复制链接实际内容。
+工具包可整个复制到其他位置；依赖重新安装即可。所有 CLI 输入路径相对当前工作目录，`project.json` 里的数据、输出、资产目录相对该配置文件。包内含一份设计器模板与一套 CC0 家具模型（`src/furniture/assets/`，清单见 `catalog.json`），旧路径为兼容入口。复制时保留目录内符号链接，或复制链接实际内容。
 
 ## 先运行独立示例
 
@@ -98,7 +98,7 @@ DWG 需要本机可用的转换器先转换为 DXF；这里未内置专有 DWG �
 | `templates/project/` | 不含户型数据的新项目模板 |
 | `examples/` | 不依赖真实项目的最小示例 |
 
-旧 `scripts/*` 保留原有调用入口，`assets/template.html` 和 `assets/furniture` 链接到公共实现。公共实现与原路径的对应关系见 [迁移清单](migration-map.json)。
+旧 `scripts/*` 保留原有调用入口，`assets/template.html` 和 `assets/furniture` 链接到公共实现。公共实现与原路径的对应关系见 [迁移清单](../src/migration-map.json)。
 
 ## 维护时验证
 

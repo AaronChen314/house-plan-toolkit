@@ -12,8 +12,9 @@
   "layouts": {
     "target": {
       "allowDirectories": ["bin", "src", "schemas", "skills", "docs", "templates", "examples", "tests"],
-      "allowFiles": ["package.json", "README.md", "LICENSE", "CHANGELOG.md"],
-      "denyExtensions": [".dwg", ".dxf", ".pdf", ".zip"],
+      "allowFiles": [".gitignore", "AGENTS.md", "CHANGELOG.md", "LICENSE", "README.md",
+                     "package.json", "package-lock.json", "publish-manifest.json", "requirements.txt"],
+      "denyExtensions": [".dwg", ".dxf", ".pdf", ".zip", ".xlsx", ".docx", ".skp", ".blend"],
       "assetManifests": ["src/furniture/assets/catalog.json"]
     }
   },
@@ -38,6 +39,10 @@
 | P003 | 文本含本机绝对路径 |
 | P004 | 命中私有敏感词表（文本或文件名） |
 | P005 | 历史提交中出现过项目/生成物路径 |
+| P006 | 未登记的二进制/模型资产 |
+| P007 | 资产清单条目缺许可或来源 |
+
+运行时数据不在发布面内，也不需要登记：`~/.cache/house-plan/index.sqlite`（全局摘要）、`~/.config/house-plan/plugins/`（用户级插件）、项目目录里的 `data/`、`output/`、`.space/` 都属于使用者机器。
 | P006 | 二进制未登记、登记缺许可/来源、哈希不符 |
 | P007 | 资产清单条目缺字段、文件不存在或 id 不规范 |
 
