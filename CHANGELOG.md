@@ -4,6 +4,14 @@
 
 ### 新增
 
+- **底图描图**：`space-trace/v1` 契约（底图比例/原点、墙与判无效项）、`src/domain/tracing.mjs`（像素→毫米、中心线→墙体多边形、幂等合并）、能力 `annotation.trace`（`write:data`，必须带操作者）、CLI `space trace save|list`、工作台「底图描图」面板（选底图、调比例、点两下画墙、保存）。
+- 描图记录写进数据集 `traces[]`（操作者、时间、底图、数量），墙体带 `provenance: manual` 与 `tracedAt/tracedBy`。
+- `docs/manual-test.md` 增加「底图描图」回归步骤；`docs/storage.md` 增加对应契约说明。
+
+### 修复
+
+- 存储层登记表按 mtime 检测外部更新：同进程里能力自己开一个 store、宿主也开一个时，`verify` 会对着旧内存值误报「变更」。`saveRegistry` 也不再经 `reg()` 重新加载（后者会丢掉刚写入的条目）。
+
 - `docs/manual-test.md`：按阶段的手工测试流程（准备 → 图纸 → 数据 → 设计 → 施工图 → 渲染交付 → 索引/存储/图 → 门面负向），每步带预期输出，末尾给出测试反馈必需字段。release.md 与 AGENTS.md 已链入。
 
 ### 变更

@@ -9,6 +9,7 @@ import {commands as datasetCommands} from './commands/dataset.mjs';
 import {commands as designCommands} from './commands/design.mjs';
 import {commands as programCommands} from './commands/program.mjs';
 import {commands as annotationCommands} from './commands/annotation.mjs';
+import {commands as traceCommands} from './commands/trace.mjs';
 import {commands as docCommands} from './commands/doc.mjs';
 import {commands as deliveryCommands} from './commands/delivery.mjs';
 import {commands as capCommands} from './commands/cap.mjs';
@@ -27,6 +28,7 @@ export const COMMANDS = [
   ...designCommands,
   ...programCommands,
   ...annotationCommands,
+  ...traceCommands,
   ...docCommands,
   ...deliveryCommands,
   ...capCommands,

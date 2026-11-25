@@ -51,6 +51,15 @@ try {
   }
   const title = await page.title();
 
+  // 底图描图面板：有底图时出画布，没有底图时给可见提示，不能白屏。
+  await page.click('[data-testid="trace-toggle"]');
+  await page.waitForSelector('[data-testid="trace-panel"]', {timeout: 10000});
+  const tracePanel = await page.evaluate(() => ({
+    canvas: !!document.querySelector('[data-testid="trace-canvas"]'),
+    empty: !!document.querySelector('[data-testid="trace-empty"]')
+  }));
+  assert.ok(tracePanel.canvas || tracePanel.empty, '描图面板既没有画布也没有提示');
+
   // 计划中的能力：门面照常显示，但只能看到「未实现」与阻塞原因，没有执行按钮。
   await page.click('[data-testid="planned-doc.mep"]');
   await page.waitForSelector('[data-testid="planned-panel"]', {timeout: 10000});
@@ -99,6 +108,7 @@ try {
     meta: meta.trim(),
     indexState,
     plannedPanel,
+    tracePanel,
     drawn,
     confirmPanel,
     entityRequests: entityRequests.length,

@@ -80,7 +80,7 @@ function hashesOf(ctx) {
 
 test('能力契约字段齐全，且未注册不影响本地校验', () => {
   assert.deepEqual(validateRegistry(capabilities), []);
-  assert.deepEqual(capabilities.map(c => c.id), ['dataset.build', 'dataset.diff', 'dataset.correct', 'annotation.confirm']);
+  assert.deepEqual(capabilities.map(c => c.id), ['dataset.build', 'dataset.diff', 'dataset.correct', 'annotation.confirm', 'annotation.trace']);
   assert.deepEqual(diff.sideEffects, ['none']);
   assert.deepEqual(correct.sideEffects, ['none']);
   assert.deepEqual(build.sideEffects, ['write:data']);

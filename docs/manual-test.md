@@ -136,6 +136,30 @@ $S doc render --project project.json --scheme a --seq 1 --force
 # 预期：重出成功，doc check 回到「全部与输入一致」
 ```
 
+## 4.5 底图描图（人工修正）
+
+先准备一张底图：把 PDF 渲染成 PNG，或在项目里放任意平面截图。
+
+```sh
+# 示例：把合成示例的白模截一张图当底图（也可以用真图纸渲染）
+mkdir -p output/cad && cp "$PKG/examples/two-level/output/browser-check/full-model.png" output/cad/underlay.png 2>/dev/null || true
+```
+
+```sh
+cat > items.json <<'EOF'
+[{"kind":"wall","from":[0,0],"to":[6000,0],"thicknessMm":200}]
+EOF
+$S trace save --project project.json --dataset d1 --file items.json --actor 你的名字 \
+  --underlay '{"file":"output/cad/underlay.png","mmPerPx":12.5,"origin":[0,0]}'
+$S trace list --project project.json --dataset d1
+```
+
+**预期**：`描图已合并 · ground：新增 1 面墙`；再跑一次变成「更新 1 面」，墙数不增加；`trace list` 每次留一条记录。
+
+工作台里同样能做：`底图描图` 面板 → 选底图 → 调 `mm/像素` 与原点 → 点两下画墙 → 保存。
+
+**负向**：不带 `--actor` 应被拒（人工改动必须可追溯）。
+
 ## 5. 渲染与交付
 
 ```sh

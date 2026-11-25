@@ -53,16 +53,32 @@ export function openStore(projectFile, opts = {}) {
     throw fail('E_STORE_PROJECT', `项目文件不存在：${projectFileAbs}`);
   }
 
+  // 登记表带 mtime 戳：同进程里可能有多个 store 实例（能力自己开一个、宿主也开一个），
+  // 谁后写谁生效，读的一方必须能看到对方的更新，否则 verify 会对着旧值误报。
   let registry = null;
+  let registryStamp = null;
+  const stampOfRegistry = () => {
+    try {
+      const st = fs.statSync(registryFile(dir));
+      return `${st.mtimeMs}:${st.size}`;
+    } catch { return null; }
+  };
   const reg = () => {
-    if (!registry) registry = readRegistryOrEmpty(dir, projectId);
+    const stamp = stampOfRegistry();
+    if (!registry || stamp !== registryStamp) {
+      registry = readRegistryOrEmpty(dir, projectId);
+      registryStamp = stamp;
+    }
     return registry;
   };
   const saveRegistry = () => {
-    const r = reg();
+    // 不能用 reg()：它可能因为 mtime 变化重新加载，把调用方刚写进去的条目丢掉。
+    if (!registry) registry = readRegistryOrEmpty(dir, projectId);
+    const r = registry;
     r.project = projectId;
     r.updatedAt = new Date().toISOString();
     writeRegistry(dir, r);
+    registryStamp = stampOfRegistry();
     return r;
   };
 

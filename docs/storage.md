@@ -290,6 +290,22 @@ space cap run <id> --project p [--<参数> 值 ...]
 - 计划中：侧边栏置灰带「·」，点进去只有说明与 `blockedBy`，**不渲染执行按钮**；
 - 运行接口对计划项返回同一个错误码，两端说法一致。
 
+## 底图描图（人工修正）
+
+识别不准或识别不出的构件，由人在底图上画出来，写进数据集模型。
+
+- **契约** `src/contracts/tracing.mjs`：`space-trace/v1`。底图 = `{file, mmPerPx, origin, rotationDeg}`（图片左上角对应的模型毫米坐标）；描图项 = `wall`（中心线两点 + 墙厚）或 `invalid`（判无效的 handle）。
+- **纯函数** `src/domain/tracing.mjs`：像素→毫米变换、中心线→墙体多边形、合并进楼层（同一面墙由几何推导 handle，重复提交是覆盖而不是新增）。
+- **能力** `annotation.trace`（`write:data`）：读数据集与模型 → 归一化 → 合并 → 校验 → 写回模型并在数据集里追加一条 `traces` 记录（操作者、时间、底图、数量）。**必须带操作者**，人工改动要能追溯。
+- **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
+- **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
+
+边界：
+
+- 现在只收**墙**。房间、门窗、点位还没进 `space-model/v1`，等数据契约确定后再加。
+- 底图必须是项目内的图片（PDF 先渲染成 PNG）；比例与原点自动识别会有误差，界面上可手调。
+- `cad.vec`（PDF/DXF 识别）还没接成能力，见 [实现计划](roadmap.md) 的 M6 候选。
+
 ## 施工图与交付清单（M3 契约）
 
 契约在 `src/contracts/documents.mjs`，纯逻辑在 `src/domain/{demolition,sheet,sheet-projection,documents}.mjs`。

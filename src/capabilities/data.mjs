@@ -4,6 +4,8 @@ import {fail} from '../contracts/errors.mjs';
 import {datasetFile, designVersionFile} from '../contracts/graph.mjs';
 import {DATASET_SCHEMA, DESIGN_SCHEMA, emptyDataset, validateDataset} from '../contracts/datasets.mjs';
 import {diffRecords, matchesChanged} from '../domain/datasets.mjs';
+import {mergeTrace, traceSummary} from '../domain/tracing.mjs';
+import {traceItem, traceRecord, traceSpec, validateTraceSpec} from '../contracts/tracing.mjs';
 import {impactOf} from '../domain/graph.mjs';
 import {prepareModel, validateModel} from '../domain/model.mjs';
 
@@ -580,6 +582,92 @@ export const capabilities = [
         data: {
           dataset, object, field, invalid, value: parsed, basis: entry.basis, at: entry.at,
           actor: entry.actor, total: updated.confirmations.length
+        }
+      };
+    }
+  },
+  {
+    id: 'annotation.trace',
+    version: '1.0.0',
+    stage: 'data',
+    title: '底图描图',
+    description: '把人工在底图上画的墙体合并进数据集模型，记录来源、操作者与时间；前提是底图比例与原点已校准。',
+    params: [
+      {key: 'dataset', label: '数据集 id', type: 'text', required: true},
+      {key: 'floor', label: '楼层 id（留空取第一层）', type: 'text'},
+      {key: 'items', label: '描图项（JSON 数组）', type: 'text', required: true},
+      {key: 'underlay', label: '底图（JSON：file / mmPerPx / origin / rotationDeg）', type: 'text'},
+      {key: 'actor', label: '操作者', type: 'text', required: true},
+      {key: 'note', label: '备注', type: 'text'}
+    ],
+    inputs: {dataset: 'space-dataset/v1', model: 'space-model/v1'},
+    outputs: {dataset: 'space-dataset/v1', model: 'space-model/v1'},
+    sideEffects: ['write:data'],
+    requires: [],
+    idempotent: true,
+    errors: [
+      'E_EXEC_PARAM', 'E_DATA_SCHEMA', 'E_DATA_INVALID', 'E_DATA_REFERENCE',
+      'E_STORE_CONFLICT', 'E_STORE_LOCK_REQUIRED', 'E_STORE_PATH', 'E_STORE_IO'
+    ],
+    async run(ctx, {dataset, floor, items, underlay: ul, actor, note = ''} = {}) {
+      if (!dataset) throw fail('E_EXEC_PARAM', '需要数据集 id');
+      if (!actor || typeof actor !== 'string' || !actor.trim()) throw fail('E_EXEC_PARAM', '人工改动必须记录操作者（actor）');
+      let parsed;
+      if (typeof items === 'string') {
+        try { parsed = JSON.parse(items); } catch (e) { throw fail('E_EXEC_PARAM', `描图项不是合法 JSON：${e.message}`); }
+      } else {
+        parsed = items;
+      }
+      let parsedUnderlay = ul;
+      if (typeof ul === 'string') {
+        try { parsedUnderlay = JSON.parse(ul); } catch (e) { throw fail('E_EXEC_PARAM', `底图参数不是合法 JSON：${e.message}`); }
+      }
+      const normalized = (Array.isArray(parsed) ? parsed : []).map(traceItem);
+      const problems = validateTraceSpec(traceSpec({dataset, floor, items: normalized, underlay: parsedUnderlay, actor, note}));
+      if (problems.length) throw fail('E_EXEC_PARAM', problems.join('；'), {problems});
+
+      const dsRel = datasetPath(dataset);
+      if (!ctx.store.exists(dsRel)) throw fail('E_DATA_REFERENCE', `数据集不存在：${dataset}`, {dataset, file: dsRel});
+      const dsHash = ctx.store.hashOf(dsRel);
+      const record = ctx.store.readJson(dsRel);
+      if (record?.schema !== DATASET_SCHEMA) throw fail('E_DATA_SCHEMA', `${dsRel} 不是 ${DATASET_SCHEMA}`);
+      const dsProblems = validateDataset(record);
+      if (dsProblems.length) throw fail('E_DATA_INVALID', dsProblems.join('；'), {dataset, problems: dsProblems});
+
+      const modelRel = record.model || modelPath(dataset);
+      if (!ctx.store.exists(modelRel)) throw fail('E_DATA_REFERENCE', `模型不存在：${modelRel}`, {file: modelRel});
+      const modelHash = ctx.store.hashOf(modelRel);
+      const rawModel = ctx.store.readJson(modelRel);
+      if (rawModel?.schema !== 'space-model/v1') throw fail('E_DATA_SCHEMA', `${modelRel} 不是 space-model/v1`);
+      // 手写/外部生成的模型可能缺数组字段：先按 prepareModel 归一化，再合并与校验。
+      const model = prepareModel(rawModel);
+
+      const at = new Date().toISOString();
+      let merged;
+      try {
+        merged = mergeTrace(model, {floor, items: normalized, actor, at});
+      } catch (e) {
+        throw fail('E_DATA_REFERENCE', e.message, {dataset, floor});
+      }
+      const modelProblems = validateModel(merged.model);
+      if (!modelProblems.passed) {
+        throw fail('E_DATA_INVALID', `描图后模型不合法：${modelProblems.issues.map(i => i.message).join('；')}`, {issues: modelProblems.issues});
+      }
+
+      // 先写模型，再补数据集里的描图记录；两次都是权威写入，带各自基准哈希。
+      ctx.store.writeData(modelRel, merged.model, {baseHash: modelHash, confirm: true});
+      const entry = traceRecord({at, actor, floor: merged.floor, items: normalized, underlay: parsedUnderlay ?? null, note});
+      const updated = {...record, traces: [...(record.traces || []), entry]};
+      ctx.store.writeData(dsRel, updated, {baseHash: dsHash, confirm: true});
+
+      const summary = traceSummary({applied: merged.applied, invalidHandles: merged.invalidHandles, floor: merged.floor});
+      return {
+        summary: `描图已合并 · ${summary.text}`,
+        outputs: [{path: dsRel, kind: 'data'}, {path: modelRel, kind: 'data'}],
+        data: {
+          dataset, floor: merged.floor, model: modelRel,
+          created: summary.created, replaced: summary.replaced, invalid: summary.invalid,
+          handles: merged.applied.map(a => a.handle), at
         }
       };
     }

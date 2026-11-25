@@ -48,6 +48,7 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [showIndex, setShowIndex] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showTrace, setShowTrace] = useState(false);
 
   useEffect(() => {
     getJson('/api/capabilities')
@@ -102,6 +103,7 @@ function App() {
         <button class="primary" onClick={() => openProject(projectPath)}>打开项目</button>
         {project && <button data-testid="index-toggle" onClick={() => setShowIndex(v => !v)} class={showIndex ? 'active' : ''}>{showIndex ? '收起索引' : '几何索引'}</button>}
         {project && <button data-testid="confirm-toggle" onClick={() => setShowConfirm(v => !v)} class={showConfirm ? 'active' : ''}>{showConfirm ? '收起确认' : '确认清单'}</button>}
+        {project && <button data-testid="trace-toggle" onClick={() => setShowTrace(v => !v)} class={showTrace ? 'active' : ''}>{showTrace ? '收起描图' : '底图描图'}</button>}
         {project && <span class="meta">{project.project.id} · v{project.project.schema} · {project.files.length} 个文件</span>}
       </header>
       <div class="body">
@@ -129,6 +131,7 @@ function App() {
             )}
             {project && showIndex && <IndexPanel projectPath={projectPath} />}
             {project && showConfirm && <ConfirmPanel projectPath={projectPath} files={project.files || []} />}
+            {project && showTrace && <TracePanel projectPath={projectPath} files={project.files || []} />}
             {!project && <div class="panel"><h3>打开一个项目</h3><p class="desc">填写 project.json 的路径（相对当前工作目录或绝对路径）。工作台只读取项目文件，生成物写入项目 output/。</p></div>}
             {plannedCap && (
               <div class="panel" data-testid="planned-panel">
@@ -172,6 +175,125 @@ function App() {
           <div class="log">{logs.length ? logs.join('\n') : <span class="empty">日志输出…</span>}</div>
         </main>
       </div>
+    </div>
+  );
+}
+
+// 底图描图：把 PDF/截图渲染出的底图放进同一套毫米坐标里，两点画一面墙，
+// 保存后由 annotation.trace 合并进数据集模型（带操作者与时间）。
+function TracePanel({projectPath, files}) {
+  const datasets = (files || []).map(f => /^data\/datasets\/([^/]+)\/dataset\.json$/.exec(f)).filter(Boolean).map(m => m[1]);
+  const images = (files || []).filter(f => /\.(png|jpe?g|webp)$/i.test(f));
+  const [dataset, setDataset] = useState(datasets[0] || '');
+  const [image, setImage] = useState(images[0] || '');
+  const [mmPerPx, setMmPerPx] = useState('12.5');
+  const [origin, setOrigin] = useState('0,0');
+  const [thickness, setThickness] = useState('200');
+  const [actor, setActor] = useState('');
+  const [size, setSize] = useState(null);
+  const [items, setItems] = useState([]);
+  const [pending, setPending] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => { if (!dataset && datasets.length) setDataset(datasets[0]); }, [datasets.join(',')]);
+  useEffect(() => { if (!image && images.length) setImage(images[0]); }, [images.join(',')]);
+  useEffect(() => {
+    if (!image) { setSize(null); return; }
+    const img = new window.Image();
+    img.onload = () => setSize({w: img.naturalWidth, h: img.naturalHeight});
+    img.onerror = () => setSize(null);
+    img.src = fileUrl(projectPath, image);
+  }, [image, projectPath]);
+
+  const k = Number(mmPerPx);
+  const [ox, oy] = origin.split(',').map(v => Number(v.trim()));
+  const vb = {
+    x: Number.isFinite(ox) ? ox : 0,
+    y: Number.isFinite(oy) ? oy : 0,
+    w: size && k > 0 ? size.w * k : 4000,
+    h: size && k > 0 ? size.h * k : 3000
+  };
+
+  function click(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = +(vb.x + (e.clientX - r.left) / r.width * vb.w).toFixed(1);
+    const y = +(vb.y + (e.clientY - r.top) / r.height * vb.h).toFixed(1);
+    if (!pending) { setPending([x, y]); return; }
+    setItems(prev => [...prev, {kind: 'wall', from: pending, to: [x, y], thicknessMm: Number(thickness) || 200}]);
+    setPending(null);
+  }
+
+  async function save() {
+    if (!dataset) { setError('先在项目里建立数据集'); return; }
+    if (!items.length) { setError('先画至少一面墙：点两下'); return; }
+    if (!actor.trim()) { setError('填写操作者；人工改动要能追溯'); return; }
+    setBusy(true); setError(''); setMessage('');
+    try {
+      const r = await fetch('/api/run', {
+        method: 'POST', headers: {'content-type': 'application/json'},
+        body: JSON.stringify({
+          project: projectPath,
+          capability: 'annotation.trace',
+          params: {
+            dataset, items, actor: actor.trim(),
+            underlay: {file: image, mmPerPx: k, origin: [vb.x, vb.y]}
+          }
+        })
+      });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error || '保存失败');
+      setMessage(d.summary || '已合并');
+      setItems([]); setPending(null);
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div class="panel" data-testid="trace-panel">
+      <h3>底图描图</h3>
+      <div class="toolbar">
+        <label class="meta">数据集
+          <select value={dataset} onChange={e => setDataset(e.target.value)}>
+            {datasets.length ? datasets.map(id => <option key={id} value={id}>{id}</option>) : <option value="">（无）</option>}
+          </select>
+        </label>
+        <label class="meta">底图
+          <select value={image} onChange={e => setImage(e.target.value)}>
+            {images.length ? images.map(f => <option key={f} value={f}>{f}</option>) : <option value="">（没有图片）</option>}
+          </select>
+        </label>
+        <label class="meta">mm/像素
+          <input type="text" size="6" value={mmPerPx} onInput={e => setMmPerPx(e.target.value)} />
+        </label>
+        <label class="meta">原点 x,y
+          <input type="text" size="10" value={origin} onInput={e => setOrigin(e.target.value)} />
+        </label>
+        <label class="meta">墙厚 mm
+          <input type="text" size="5" value={thickness} onInput={e => setThickness(e.target.value)} />
+        </label>
+        <label class="meta">操作者
+          <input type="text" size="8" value={actor} onInput={e => setActor(e.target.value)} placeholder="你的名字" />
+        </label>
+        <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 面墙`}</button>
+      </div>
+      {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
+      {message && <div class="banner ok">{message}</div>}
+      {error && <div class="banner err">{error}</div>}
+      <div class="stage">
+        {image && (
+          <svg data-testid="trace-canvas" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onClick={click} style="cursor:crosshair">
+            <image href={fileUrl(projectPath, image)} x={vb.x} y={vb.y} width={vb.w} height={vb.h} opacity="0.85" />
+            {items.map((w, i) => (
+              <line key={i} x1={w.from[0]} y1={w.from[1]} x2={w.to[0]} y2={w.to[1]}
+                stroke="#b3261e" stroke-width={w.thicknessMm} stroke-linecap="square" opacity="0.9" />
+            ))}
+            {pending && <circle cx={pending[0]} cy={pending[1]} r={Math.max(vb.w / 200, 20)} fill="#1a5fb4" />}
+          </svg>
+        )}
+      </div>
+      <p class="desc">点两下画一面墙；比例或原点不准时改上面的数字，网格会跟着变。保存后墙会带 <code>provenance: manual</code> 与操作者写进数据集模型。</p>
     </div>
   );
 }
