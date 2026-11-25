@@ -18,7 +18,7 @@ const sqlite = await sqliteAvailable();
 const space = (env, ...args) => spawnSync(process.execPath, [BIN, ...args], {encoding: 'utf8', env: {...process.env, ...env}});
 
 const record = (over = {}) => globalRecord({
-  projectId: 'demo', name: '示例', path: '/tmp/demo', toolkit: '0.6.0',
+  projectId: 'demo', name: '示例', path: path.join('demo-project'), toolkit: '0.6.0',
   updatedAt: '2026-11-25T00:00:00.000Z', entities: 12, layers: 3, datasets: 1, designs: 1, documents: 1, renders: 1, ...over
 });
 
@@ -38,7 +38,7 @@ test('全局索引记录：只存摘要，几何与内容字段一律拒绝', ()
 
 test('全局索引：位置在项目之外，可以按环境变量重定向', () => {
   const file = globalIndexFile({home: path.join('someones-home')});
-  assert.match(file, /\.cache\/house-plan\/index\.sqlite$/);
+  assert.equal(file.endsWith(path.join('.cache', 'house-plan', 'index.sqlite')), true, `默认位置不对：${file}`);
   assert.equal(file.includes('someones-home'), true, '默认位置在用户缓存目录下');
   const override = path.join(os.tmpdir(), 'x.sqlite');
   assert.equal(globalIndexFile({override}), path.resolve(override));

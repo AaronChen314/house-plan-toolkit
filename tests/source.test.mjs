@@ -9,8 +9,11 @@ import {buildIndex, statIndexFor, cacheKey, writeParseCache, PARSER, sqliteAvail
 
 const sqlite = await sqliteAvailable();
 
-// 假 Python：一旦被调用就以 7 退出，用来证明「命中缓存就不启动解析器」。
+// 假 Python：一旦被调用必然非零退出，用来证明「命中缓存就不启动解析器」。
+// POSIX 用 sh 脚本；Windows 上 .cmd 无法直接 spawn，改用 node 本体——
+// 它去执行 read.py 必然报语法错并以非零退出，效果等价。
 function fakePython() {
+  if (process.platform === 'win32') return process.execPath;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hpd-fakepy-'));
   const exe = path.join(dir, 'python3');
   fs.writeFileSync(exe, '#!/bin/sh\nexit 7\n', {mode: 0o755});

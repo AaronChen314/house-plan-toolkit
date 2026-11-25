@@ -60,7 +60,7 @@ test('插件清单：字段、id、版本、入口越界都被拒', () => {
   assert.match(validatePluginIdFree('doc.mep', {planned: ['doc.mep']}).join(), /计划中/);
   const dirs = pluginDirs({projectDir: '/x'});
   assert.equal(dirs[0], path.join('/x', 'plugins'));
-  assert.match(dirs[1], /\.config\/house-plan\/plugins$/);
+  assert.equal(dirs[1].endsWith(path.join('.config', 'house-plan', 'plugins')), true, `用户级插件目录不对：${dirs[1]}`);
 });
 
 test('加载器：默认关闭；开启后加载、校验、拒绝冲突与坏清单', async () => {
