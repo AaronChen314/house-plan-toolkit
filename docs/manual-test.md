@@ -13,6 +13,8 @@
 npm install -g --prefix ~/hp/v0.7.1 \
   https://github.com/AaronChen314/house-plan-toolkit/releases/download/v0.7.1/house-plan-toolkit-0.7.1.tgz
 export SPACE=~/hp/v0.7.1/bin/space        # Windows: ~/hp/v0.7.1/Scripts/space
+export PKG=~/hp/v0.7.1/lib/node_modules/house-plan-toolkit
+# Windows 的 PKG 在 ~/hp/v0.7.1/node_modules/house-plan-toolkit
 
 $SPACE version      # 期望 toolkit = 0.7.1
 $SPACE doctor       # 记录输出；Python 依赖缺就先跑下一步
@@ -116,7 +118,7 @@ $S graph show --project project.json
 草稿模型没有墙，先换成带墙的模型再出图：
 
 ```sh
-cp ~/house-plan-toolkit/examples/two-level/data/model.json data/datasets/d1/model.json
+cp $PKG/examples/two-level/data/model.json data/datasets/d1/model.json
 $S store rebuild --project project.json
 $S doc render --project project.json --scheme a --seq 1
 ```
@@ -151,7 +153,7 @@ $S deliver snapshot --project project.json --scheme a --seq 1 --name lab
 **离线验收**（最有价值的一步）：
 
 ```sh
-node ~/house-plan-toolkit/src/checks/bundle.mjs project.json lab
+node $PKG/src/checks/bundle.mjs project.json lab
 # 预期：PASS bundle offline · 7 个文件 · 清单页零外部请求 · 快照 file:// 打开零网络
 ```
 
