@@ -1,5 +1,15 @@
 # 变更记录
 
+## 未发布
+
+### 新增
+
+- `docs/manual-test.md`：按阶段的手工测试流程（准备 → 图纸 → 数据 → 设计 → 施工图 → 渲染交付 → 索引/存储/图 → 门面负向），每步带预期输出，末尾给出测试反馈必需字段。release.md 与 AGENTS.md 已链入。
+
+### 变更
+
+- `space dataset build` 成功后提示下一步：把 `project.json` 的 `model` 指向 `data/datasets/<id>/model.json`，否则 `space check` / `program check` 会报「Project has no verified model yet」。数据集不改项目指针（权威归文件），但调用方需要看见这一步。
+
 ## 0.7.1 — 2026-11-25
 
 0.7.0 的 Release 流程在 Windows 上失败（tag 已推送但没生成 Release 产物），这一版修掉跨平台测试问题，是第一个可用的发布包。

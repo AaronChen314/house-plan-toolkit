@@ -24,6 +24,10 @@ export const commands = [
         print(r.summary);
         for (const f of Object.values(r.data?.files || {})) print(`  ${f}`);
         if (r.data?.assumptions) print(`  预览依据 ${r.data.assumptions} 条（basis=preview，需人工确认）`);
+        // project.model 不改：数据集是权威，项目指针由人决定。但要让调用方看见下一步。
+        if (r.data?.model) {
+          print(`  下一步：把 project.json 的 model 改为 ${r.data.model}，space check / program check / build 才会用这份模型`);
+        }
         return;
       }
 

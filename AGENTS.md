@@ -10,6 +10,7 @@
 | 已确认设计同步三维、固定机位出图与复核 | [skills/design-to-3d-sync/SKILL.md](skills/design-to-3d-sync/SKILL.md) |
 | 彩平图与室内效果图 | [skills/design-image-render/SKILL.md](skills/design-image-render/SKILL.md) |
 | 改契约、存储或写入路径 | [docs/storage.md](docs/storage.md) |
+| 用打包版 CLI 做回归测试 | [docs/manual-test.md](docs/manual-test.md) |
 
 五个技能共用 [空间工作流约定](docs/space-workflow-contract.md)。项目目录与文件格式见 [项目目录规范](docs/project-layout.md)，公开发布边界见 [发布边界](docs/public-surface.md)。
 

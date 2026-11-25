@@ -91,6 +91,8 @@ cat ~/test-house/.agents/skills/.skills-version       # 报 bug 时附上这一�
 
 Windows 用 `~/hp/v0.7.1/Scripts/space`（前缀下是 `Scripts/` 而非 `bin/`）。
 
+装完按 [手工测试流程](manual-test.md) 走一遍：按阶段覆盖 22 个已实现能力，每步有预期输出与报错模板。
+
 ## 分支与 PR
 
 - 两人阶段用 `develop` 集成：`feat/*`、`fix/*` 合入 `develop`，`main` 只接受从 `develop` 来的 PR（1 人 review + CI 绿）。
