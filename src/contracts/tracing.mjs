@@ -3,9 +3,13 @@
 
 export const TRACE_SCHEMA = 'space-trace/v1';
 
-// 构件来源：识别脚本、人工描图、导入的模型。
-export const PROVENANCE = ['cadvec', 'dxf', 'manual', 'import'];
+// 构件来源：识别脚本、AI 提议、人工描图、导入的模型。
+// AI 与识别脚本都是「提议」——未经人工核对前，置信度就是它的可核查程度。
+export const PROVENANCE = ['cadvec', 'ai', 'dxf', 'manual', 'import'];
 export const DEFAULT_PROVENANCE = 'manual';
+
+// 低置信度阈值：低于它的墙在 studio 里高亮，视为待核对。
+export const LOW_CONFIDENCE = 0.8;
 
 // 允许的描图项。房间暂不入模型（space-model 还没有房间数组），先只收墙。
 export const TRACE_ITEM_KINDS = ['wall', 'invalid'];
@@ -33,7 +37,8 @@ export function traceItem(item) {
     from: [Number(item?.from?.[0]), Number(item?.from?.[1])],
     to: [Number(item?.to?.[0]), Number(item?.to?.[1])],
     thicknessMm: Number(item?.thicknessMm),
-    provenance: item?.provenance || DEFAULT_PROVENANCE
+    provenance: item?.provenance || DEFAULT_PROVENANCE,
+    ...(Number.isFinite(Number(item?.confidence)) ? {confidence: Number(item.confidence)} : {})
   };
 }
 
@@ -50,6 +55,9 @@ export function validateTraceItem(item) {
   else if (Math.hypot(item.to[0] - item.from[0], item.to[1] - item.from[1]) < 1) problems.push('墙的两点重合');
   if (!Number.isFinite(item.thicknessMm) || item.thicknessMm <= 0 || item.thicknessMm > 1000) problems.push('墙厚需在 1–1000mm 之间');
   if (!PROVENANCE.includes(item.provenance || DEFAULT_PROVENANCE)) problems.push(`未知来源：${item.provenance}`);
+  if (item.confidence !== undefined && (!Number.isFinite(item.confidence) || item.confidence < 0 || item.confidence > 1)) {
+    problems.push('置信度需在 0–1 之间');
+  }
   return problems;
 }
 
@@ -74,5 +82,11 @@ export function validateTraceSpec(spec) {
 export function traceRecord({at, actor, floor, items = [], underlay: ul = null, note = ''} = {}) {
   const walls = items.filter(i => i.kind === 'wall').length;
   const invalid = items.filter(i => i.kind === 'invalid').length;
-  return {at, actor, floor: floor ?? null, walls, invalid, underlay: ul ?? null, note};
+  const byProvenance = {};
+  for (const item of items) {
+    const key = item.provenance || DEFAULT_PROVENANCE;
+    byProvenance[key] = (byProvenance[key] || 0) + 1;
+  }
+  const lowConfidence = items.filter(i => i.kind === 'wall' && Number.isFinite(i.confidence) && i.confidence < LOW_CONFIDENCE).length;
+  return {at, actor, floor: floor ?? null, walls, invalid, lowConfidence, byProvenance, underlay: ul ?? null, note};
 }

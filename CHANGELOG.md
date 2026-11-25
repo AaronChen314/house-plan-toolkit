@@ -4,6 +4,11 @@
 
 ### 新增
 
+- **DWG 转 DXF**：能力 `cad.convert`，检测 ODA File Converter（推荐）与 LibreDWG `dwg2dxf`（备选）；转换在 `.space/tmp/` 内进行、`cwd` 隔离，避免工具在项目根按默认名落盘。实测 LibreDWG 的 DXF 输出 ezdxf 读不了（r2000–r2018 全部失败），摘要里会警告。
+- **AI 提议与置信度**：描图项支持 `provenance`（新增 `ai`）与 `confidence`（0–1）；`LOW_CONFIDENCE = 0.8` 以下的墙在 studio 画虚线红，`space trace review` 按来源统计并列出待核对的墙；`space trace save --provenance ai` 用于批量提议。
+- studio「底图描图」面板会画出模型里已有的墙（manual 蓝 / ai 橙 / cadvec 紫），切「判为无效」后点墙即可标记。
+- `docs/roadmap.md` 新增「M6 候选：图纸识别与人工修正」，记录已落地与待做（cad.vector 映射、房间/门窗进模型、AI 采集流程）。
+
 - **底图描图**：`space-trace/v1` 契约（底图比例/原点、墙与判无效项）、`src/domain/tracing.mjs`（像素→毫米、中心线→墙体多边形、幂等合并）、能力 `annotation.trace`（`write:data`，必须带操作者）、CLI `space trace save|list`、工作台「底图描图」面板（选底图、调比例、点两下画墙、保存）。
 - 描图记录写进数据集 `traces[]`（操作者、时间、底图、数量），墙体带 `provenance: manual` 与 `tracedAt/tracedBy`。
 - `docs/manual-test.md` 增加「底图描图」回归步骤；`docs/storage.md` 增加对应契约说明。

@@ -300,6 +300,28 @@ space cap run <id> --project p [--<参数> 值 ...]
 - **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
 - **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
 
+### DWG 转 DXF
+
+`cad.convert`（`src/capabilities/convert.mjs`）调用本机转换器，产物写 `output/cad/`，再交给 `cad.inspect`。检测顺序：
+
+| 工具 | 说明 |
+|---|---|
+| **ODA File Converter** | 推荐。免费但需注册下载；macOS 在 `.app/Contents/MacOS/ODAFileConverter`，Windows 在 `C:/Program Files/ODA/…`。可用 `ODA_CONVERTER` 指定路径 |
+| **LibreDWG `dwg2dxf`** | 备选。**实测输出 ezdxf 读不了**（缺 EOF / ValueError，r2000–r2018 都失败），只能算最后手段，摘要里会明确警告 |
+
+都没有时能力报 `E_EXEC_DEPENDENCY` 并给出安装提示。转换在 `.space/tmp/` 里进行，工具的 `cwd` 也设在暂存目录——避免它在项目根按默认文件名落一个 DXF（那是绕过存储层的写入）。
+
+### AI 提议与人工修正
+
+自动识别（脚本或 AI）产出的是**提议**，不是结论：
+
+- 描图项带 `provenance`（`cadvec` / `ai` / `dxf` / `manual` / `import`）与可选 `confidence`（0–1）。
+- `LOW_CONFIDENCE = 0.8`：低于它的墙在 studio 里画虚线红，视为待核对。
+- `space trace review --project … --dataset …` 按来源统计，并列出低置信度的墙。
+- studio「底图描图」面板会画出模型里已有的墙（manual 蓝 / ai 橙 / cadvec 紫），切到「判为无效」后点一面墙即可标记，保存后带 handle 写进数据集。
+
+AI 在环外：模型看图纸输出 `items` JSON（或直接调 `annotation.trace`），工具包只负责校验、合并、记录来源与置信度。数据不出机器，也不需要把模型密钥放进 CLI。
+
 边界：
 
 - 现在只收**墙**。房间、门窗、点位还没进 `space-model/v1`，等数据契约确定后再加。

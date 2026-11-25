@@ -135,3 +135,31 @@ test('CLI：trace save / list', async () => {
   const bad = space('trace', 'save', '--project', file, '--dataset', 'd1', '--items', '[]', '--actor', 'x');
   assert.equal(bad.status, 1);
 });
+
+test('来源与置信度：AI 提议可校验、低置信度会被列出', async () => {
+  const {file, store} = await tempProject();
+  const items = [
+    {kind: 'wall', from: [0, 0], to: [6000, 0], thicknessMm: 200, provenance: 'ai', confidence: 0.55},
+    {kind: 'wall', from: [0, 0], to: [0, 4000], thicknessMm: 200, provenance: 'ai', confidence: 0.95}
+  ];
+  const r = await runCapability({file, project: file, capability: 'annotation.trace', params: {dataset: 'd1', items, actor: 'agent'}});
+  assert.equal(r.data.created, 2);
+  const model = store.readJson('data/datasets/d1/model.json');
+  const aiWalls = model.floors[0].walls.filter(w => w.provenance === 'ai');
+  assert.equal(aiWalls.length, 2);
+  assert.ok(aiWalls.every(w => Number.isFinite(w.confidence)));
+
+  const {reviewWalls} = await import('../src/domain/tracing.mjs');
+  const review = reviewWalls(model.floors[0].walls);
+  assert.deepEqual(review.byProvenance, {ai: 2});
+  assert.equal(review.lowConfidence.length, 1, '只有 0.55 那面需要核对');
+
+  const dataset = store.readJson('data/datasets/d1/dataset.json');
+  assert.deepEqual(dataset.traces.at(-1).byProvenance, {ai: 2});
+  assert.equal(dataset.traces.at(-1).lowConfidence, 1);
+
+  await assert.rejects(
+    runCapability({file, project: file, capability: 'annotation.trace', params: {dataset: 'd1', items: [{kind: 'wall', from: [0, 0], to: [1, 0], thicknessMm: 200, confidence: 2}], actor: 'a'}}),
+    /置信度/
+  );
+});

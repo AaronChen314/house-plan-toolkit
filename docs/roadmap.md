@@ -186,6 +186,22 @@
 
 迁移前后对比一次几何数量与浏览器检查结果，确认没有静默丢构件。
 
+## M6 候选：图纸识别与人工修正
+
+目标：PDF / PNG / DWG 进来，自动识别一部分，识别不准或识别不出的在 studio 里补。
+
+已落地：
+
+- [x] 底图描图：`space-trace/v1` 契约、`annotation.trace` 能力、`space trace save|list|review`、工作台「底图描图」面板（两点画墙、按来源着色、判无效）。
+- [x] 来源与置信度：`provenance`（cadvec / ai / dxf / manual / import）+ `confidence`，低置信度（<0.8）在 studio 高亮并在 `trace review` 列出。
+- [x] DWG 转 DXF：`cad.convert` 调用 ODA / LibreDWG，产物落 `output/cad/`；实测 LibreDWG 输出 ezdxf 读不了，只作备选。
+
+待做：
+
+- [ ] `cad.vector`：把 `cadvec.py` 的 `cad.json`/`draft.json` 映射成 `cad-source/v1` + 模型草稿（需要真实 PDF/DXF 样本评估准确率）。
+- [ ] 房间与门窗进 `space-model/v1`（现在只有墙/柱/家具），studio 才能画/改房间。
+- [ ] AI 提议的采集：把「图纸图片 → items JSON」做成可复用的 agent 流程（在环外跑模型，产物走 `annotation.trace`）。
+
 ## 未完成清单（截至 0.7.0）
 
 里程碑 M0–M2 完成，M3/M4 各剩一个需要**新数据契约或新链路**的图种，M5 两项落地、第三项按条件搁置。

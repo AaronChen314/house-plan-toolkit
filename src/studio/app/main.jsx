@@ -193,12 +193,24 @@ function TracePanel({projectPath, files}) {
   const [size, setSize] = useState(null);
   const [items, setItems] = useState([]);
   const [pending, setPending] = useState(null);
+  const [walls, setWalls] = useState([]);
+  const [mode, setMode] = useState('draw');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => { if (!dataset && datasets.length) setDataset(datasets[0]); }, [datasets.join(',')]);
   useEffect(() => { if (!image && images.length) setImage(images[0]); }, [images.join(',')]);
+  useEffect(() => {
+    if (!dataset) { setWalls([]); return; }
+    let dead = false;
+    fetch(fileUrl(projectPath, `data/datasets/${dataset}/model.json`))
+      .then(r => (r.ok ? r.json() : null))
+      .then(m => { if (!dead) setWalls((m?.floors || []).flatMap(f => (f.walls || []).map(w => ({...w, floor: f.id})))); })
+      .catch(() => { if (!dead) setWalls([]); });
+    return () => { dead = true; };
+  }, [dataset, projectPath]);
+
   useEffect(() => {
     if (!image) { setSize(null); return; }
     const img = new window.Image();
@@ -215,6 +227,16 @@ function TracePanel({projectPath, files}) {
     w: size && k > 0 ? size.w * k : 4000,
     h: size && k > 0 ? size.h * k : 3000
   };
+
+  const invalidSet = new Set(items.filter(i => i.kind === 'invalid').map(i => i.handle));
+
+  function markInvalid(wall, e) {
+    if (mode !== 'invalid') return;
+    e.stopPropagation();
+    setItems(prev => prev.some(i => i.kind === 'invalid' && i.handle === wall.handle)
+      ? prev.filter(i => !(i.kind === 'invalid' && i.handle === wall.handle))
+      : [...prev, {kind: 'invalid', handle: wall.handle, reason: 'studio 判为无效'}]);
+  }
 
   function click(e) {
     const r = e.currentTarget.getBoundingClientRect();
@@ -276,7 +298,20 @@ function TracePanel({projectPath, files}) {
         <label class="meta">操作者
           <input type="text" size="8" value={actor} onInput={e => setActor(e.target.value)} placeholder="你的名字" />
         </label>
-        <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 面墙`}</button>
+        <label class="meta">模式
+          <select value={mode} onChange={e => setMode(e.target.value)}>
+            <option value="draw">画墙</option>
+            <option value="invalid">判为无效</option>
+          </select>
+        </label>
+        <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 项`}</button>
+      </div>
+      <div class="toolbar">
+        <span class="meta">已有墙 {walls.length} 面 ·</span>
+        <span class="meta">manual</span>
+        <span class="meta" style="color:#d97706">ai</span>
+        <span class="meta" style="color:#7c3aed">cadvec</span>
+        <span class="meta">虚线红 = 低置信度（&lt; 0.8），切到「判为无效」后点它可标记</span>
       </div>
       {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
       {message && <div class="banner ok">{message}</div>}
@@ -285,6 +320,23 @@ function TracePanel({projectPath, files}) {
         {image && (
           <svg data-testid="trace-canvas" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onClick={click} style="cursor:crosshair">
             <image href={fileUrl(projectPath, image)} x={vb.x} y={vb.y} width={vb.w} height={vb.h} opacity="0.85" />
+            {walls.map((w, i) => {
+              const outer = w.polygon?.outer || [];
+              if (outer.length < 3) return null;
+              const invalid = invalidSet.has(w.handle);
+              const low = Number.isFinite(w.confidence) && w.confidence < 0.8;
+              const color = invalid ? '#b3261e' : w.provenance === 'ai' ? '#d97706' : w.provenance === 'cadvec' ? '#7c3aed' : w.provenance === 'manual' ? '#1a5fb4' : '#5f6f66';
+              const points = outer.map(([x, y]) => `${x},${y}`).join(' ');
+              return (
+                <polygon key={w.handle || i} points={points} fill={invalid ? 'rgba(179,38,30,0.25)' : color}
+                  fillOpacity={invalid ? 0.25 : 0.18} stroke={color} strokeWidth={Math.max(vb.w / 900, 6)}
+                  strokeDasharray={low ? `${vb.w / 200} ${vb.w / 300}` : undefined}
+                  style={mode === 'invalid' ? 'cursor:pointer' : undefined}
+                  onClick={e => markInvalid(w, e)}>
+                  <title>{`${w.handle} · ${w.provenance || '未标记'}${Number.isFinite(w.confidence) ? ` · 置信度 ${w.confidence}` : ''}${invalid ? ' · 已判无效' : ''}`}</title>
+                </polygon>
+              );
+            })}
             {items.map((w, i) => (
               <line key={i} x1={w.from[0]} y1={w.from[1]} x2={w.to[0]} y2={w.to[1]}
                 stroke="#b3261e" stroke-width={w.thicknessMm} stroke-linecap="square" opacity="0.9" />

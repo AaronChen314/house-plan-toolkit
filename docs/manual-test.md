@@ -160,6 +160,28 @@ $S trace list --project project.json --dataset d1
 
 **负向**：不带 `--actor` 应被拒（人工改动必须可追溯）。
 
+### 4.6 DWG 与 AI 提议（可选）
+
+DWG 需要本机转换器（ODA 推荐）：
+
+```sh
+$S cap run cad.convert --project project.json --file source/drawings/plan.dwg --out output/cad/converted.dxf
+# 没有转换器时会报 E_EXEC_DEPENDENCY 并给出安装提示，属预期
+$S cap run cad.inspect --project project.json --dxf output/cad/converted.dxf --out output/cad
+```
+
+AI/脚本提议（模拟 agent 的输出）：
+
+```sh
+cat > ai.json <<'EOF'
+[{"kind":"wall","from":[6000,0],"to":[6000,4000],"thicknessMm":200,"provenance":"ai","confidence":0.62}]
+EOF
+$S trace save --project project.json --dataset d1 --file ai.json --actor agent
+$S trace review --project project.json --dataset d1
+```
+
+**预期**：`trace review` 显示 `manual N · ai M`，并把 `confidence < 0.8` 的墙列为「待核对」；工作台「底图描图」用橙色画出 AI 墙、虚线标出低置信度，可切「判为无效」逐面标记。
+
 ## 5. 渲染与交付
 
 ```sh

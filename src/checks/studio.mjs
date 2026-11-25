@@ -32,6 +32,10 @@ try {
 
   await page.goto(server.url, {waitUntil: 'networkidle0'});
   await page.waitForSelector('[data-testid="index-toggle"]', {timeout: 15000});
+  // 首屏只允许能力清单与项目概览；整包图纸/模型必须等用户主动打开面板才加载。
+  const initialRequests = [...requests];
+  const initialBulk = initialRequests.filter(u => /\/api\/file\?.*(source|model)\.json/.test(u));
+  assert.deepEqual(initialBulk, [], `首屏请求了整包 JSON：${initialBulk.join(', ')}`);
   await page.click('[data-testid="index-toggle"]');
 
   await page.waitForSelector('[data-testid="index-panel"]', {timeout: 15000});
@@ -86,10 +90,10 @@ try {
   });
   assert.notEqual(confirmPanel.mode, 'none', '确认清单面板没有渲染出内容');
 
-  // 首屏不得请求整包图纸或完整 source.json
-  const bulk = requests.filter(u => /\/api\/file\?.*source\.json/.test(u) || /\/api\/file\?.*model\.json/.test(u));
+  // 整包图纸（cad-source）任何阶段都不该被整份加载；数据集模型只在打开描图面板时读。
+  const bulk = requests.filter(u => /\/api\/file\?.*source\.json/.test(u));
   const entityRequests = requests.filter(u => u.includes('/api/entities'));
-  assert.equal(bulk.length, 0, `首屏请求了整包 JSON：${bulk.join(', ')}`);
+  assert.equal(bulk.length, 0, `加载了整包图纸：${bulk.join(', ')}`);
   if (indexState === 'ready') {
     assert.ok(entityRequests.length >= 1, '没有走视口取数接口');
     assert.ok(entityRequests[0].includes('box='), '视口请求缺少包围盒');

@@ -1,5 +1,5 @@
 // L1 领域：底图坐标与描图合并。纯函数，不读写文件。
-import {DEFAULT_PROVENANCE} from '../contracts/tracing.mjs';
+import {DEFAULT_PROVENANCE, LOW_CONFIDENCE} from '../contracts/tracing.mjs';
 
 const round = (v) => Math.round(v * 10) / 10;
 
@@ -57,6 +57,7 @@ export function mergeTrace(model, {floor, items, actor, at = null}) {
       polygon: {outer: wallPolygon(item.from, item.to, item.thicknessMm)},
       thicknessMm: item.thicknessMm,
       provenance: item.provenance || DEFAULT_PROVENANCE,
+      ...(Number.isFinite(item.confidence) ? {confidence: item.confidence} : {}),
       tracedAt: at,
       tracedBy: actor ?? null
     };
@@ -74,6 +75,20 @@ export function mergeTrace(model, {floor, items, actor, at = null}) {
 // 统计一面墙的几何：长度与中心，供摘要与界面显示。
 export function wallLength(from, to) {
   return round(Math.hypot(to[0] - from[0], to[1] - from[1]));
+}
+
+// 审查：按来源统计墙体，列出低置信度（需要人看一眼）的墙。
+export function reviewWalls(walls = []) {
+  const byProvenance = {};
+  const lowConfidence = [];
+  let untyped = 0;
+  for (const wall of walls) {
+    const source = wall?.provenance || DEFAULT_PROVENANCE;
+    byProvenance[source] = (byProvenance[source] || 0) + 1;
+    if (wall?.provenance === undefined) untyped += 1;
+    if (Number.isFinite(wall?.confidence) && wall.confidence < LOW_CONFIDENCE) lowConfidence.push(wall.handle);
+  }
+  return {total: walls.length, byProvenance, lowConfidence, untyped};
 }
 
 export function traceSummary({applied = [], invalidHandles = [], floor}) {
