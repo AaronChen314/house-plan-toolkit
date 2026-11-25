@@ -136,7 +136,21 @@ $S doc render --project project.json --scheme a --seq 1 --force
 # 预期：重出成功，doc check 回到「全部与输入一致」
 ```
 
-## 4.5 底图描图（人工修正）
+## 4.5 PDF / 截图 → 底图 → 描图
+
+```sh
+# 图纸放进项目（存储层不允许项目外路径）
+cp 你的图纸.pdf source/drawings/20260101-plan.pdf
+$S cap run cad.raster --project project.json --source source/drawings/20260101-plan.pdf --out output/cad
+```
+
+**预期**：`底图已生成：output/cad/underlay.png（1653×1170，200dpi，1 像素 = 0.127 mm）`。
+
+打开工作台 →「底图描图」→ 选 `output/cad/underlay.png` → `mm/像素` 填上一步输出的值（200dpi 即 0.127；1:100 出图的 PDF 若按纸面比例画，可用图纸比例换算）→ 点两下画一面墙 → 保存。
+
+## 4.6 底图描图（命令行）
+
+以下为不开工作台时的等价路径。
 
 先准备一张底图：把 PDF 渲染成 PNG，或在项目里放任意平面截图。
 

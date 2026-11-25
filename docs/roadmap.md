@@ -195,6 +195,7 @@
 - [x] 底图描图：`space-trace/v1` 契约、`annotation.trace` 能力、`space trace save|list|review`、工作台「底图描图」面板（两点画墙、按来源着色、判无效）。
 - [x] 来源与置信度：`provenance`（cadvec / ai / dxf / manual / import）+ `confidence`，低置信度（<0.8）在 studio 高亮并在 `trace review` 列出。
 - [x] DWG 转 DXF：`cad.convert` 调用 ODA / LibreDWG，产物落 `output/cad/`；实测 LibreDWG 输出 ezdxf 读不了，只作备选。
+- [x] PDF / 图片转底图：`cad.raster`（PyMuPDF）输出 `output/cad/underlay.png` 并给出 `mmPerPx`，studio 直接描图。
 
 待做：
 

@@ -4,6 +4,7 @@
 
 ### 新增
 
+- **PDF/图片转底图**：能力 `cad.raster`（`src/cad/raster.py`，PyMuPDF），输出 `output/cad/underlay.png` 并返回 `mmPerPx`；只渲染不识别，源文件必须在项目内。至此「PDF/截图 → 底图 → studio 描图 → 数据」可用。
 - **DWG 转 DXF**：能力 `cad.convert`，检测 ODA File Converter（推荐）与 LibreDWG `dwg2dxf`（备选）；转换在 `.space/tmp/` 内进行、`cwd` 隔离，避免工具在项目根按默认名落盘。实测 LibreDWG 的 DXF 输出 ezdxf 读不了（r2000–r2018 全部失败），摘要里会警告。
 - **AI 提议与置信度**：描图项支持 `provenance`（新增 `ai`）与 `confidence`（0–1）；`LOW_CONFIDENCE = 0.8` 以下的墙在 studio 画虚线红，`space trace review` 按来源统计并列出待核对的墙；`space trace save --provenance ai` 用于批量提议。
 - studio「底图描图」面板会画出模型里已有的墙（manual 蓝 / ai 橙 / cadvec 紫），切「判为无效」后点墙即可标记。

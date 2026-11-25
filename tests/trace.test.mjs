@@ -163,3 +163,31 @@ test('来源与置信度：AI 提议可校验、低置信度会被列出', async
     /置信度/
   );
 });
+
+test('cad.raster：PDF 转底图（假 Python）', {skip: process.platform === 'win32' && '假 Python 是 shell 脚本，Windows 下不可执行'}, async () => {
+  const {dir, file} = await tempProject();
+  fs.mkdirSync(path.join(dir, 'source/drawings'), {recursive: true});
+  fs.writeFileSync(path.join(dir, 'source/drawings/plan.pdf'), '%PDF-1.4 fake');
+  const before = process.env.SPACE_PYTHON;
+  // 假 Python：模拟 raster.py 的 JSON 输出并写出占位 PNG
+  const fake = path.join(dir, 'fakepy.sh');
+  fs.writeFileSync(fake, `#!/bin/sh
+out=""
+while [ $# -gt 0 ]; do case "$1" in --out) out="$2"; shift 2;; *) shift;; esac; done
+printf '\\211PNG\\r\\n\\032\\n' > "$out/underlay.png"
+printf '%s\\n' '{"pages":1,"page":0,"dpi":200,"width":800,"height":600,"mmPerPx":0.127,"output":"x"}'
+`, {mode: 0o755});
+  process.env.SPACE_PYTHON = fake;
+  try {
+    const r = await runCapability({file, project: file, capability: 'cad.raster', params: {source: 'source/drawings/plan.pdf'}});
+    assert.match(r.summary, /底图已生成/);
+    assert.equal(r.data.mmPerPx, 0.127);
+    assert.equal(r.data.file, 'output/cad/underlay.png');
+    assert.ok(fs.existsSync(path.join(dir, 'output/cad/underlay.png')));
+  } finally {
+    if (before === undefined) delete process.env.SPACE_PYTHON; else process.env.SPACE_PYTHON = before;
+  }
+
+  // 路径越界必须拒绝
+  await assert.rejects(runCapability({file, project: file, capability: 'cad.raster', params: {source: '../outside.pdf'}}), /越界/);
+});

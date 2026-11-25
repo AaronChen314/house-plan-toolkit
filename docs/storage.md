@@ -300,6 +300,10 @@ space cap run <id> --project p [--<参数> 值 ...]
 - **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
 - **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
 
+### PDF / 扫描件 → 底图
+
+`cad.raster`（`src/cad/raster.py`，PyMuPDF）把 PDF 或图片栅格化成 `output/cad/underlay.png`，返回 `mmPerPx` 供 studio 预填比例。只渲染不识别——识别交给 AI 提议或人工描图。源文件必须在项目内（例如 `source/drawings/`），越界路径会被存储层拒绝。
+
 ### DWG 转 DXF
 
 `cad.convert`（`src/capabilities/convert.mjs`）调用本机转换器，产物写 `output/cad/`，再交给 `cad.inspect`。检测顺序：
