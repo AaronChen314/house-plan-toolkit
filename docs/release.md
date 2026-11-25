@@ -40,30 +40,45 @@ git status              # 工作区必须干净
    git push origin main --follow-tags
    ```
 
-7. **确认 tag 装得上**（用干净前缀，别覆盖本机开发用的 `space`）：
+7. **推送 tag**：CI 会自动完成发版（`.github/workflows/release.yml`）：
 
-   ```sh
-   npm install -g --prefix /tmp/hp-check github:AaronChen314/house-plan-toolkit#v0.7.1
-   /tmp/hp-check/bin/space version
-   /tmp/hp-check/bin/space doctor
-   ```
+   - 校验 tag 与 `package.json` 版本一致（`v0.7.1` ↔ `0.7.1`）；
+   - 跑 `npm run verify`；
+   - `npm pack` 并用干净前缀试装，跑 `space version` / `capabilities --check` / `skills check`；
+   - 建 Release，附 `house-plan-toolkit-x.y.z.tgz`；带 `-` 的 tag 自动标为 prerelease。
+
+   任一步失败就停在 Release 之前，不会留下半成品。
+
+8. **确认 Release 产物**：打开 Release 页，确认 tarball 在，然后按下面的方式装。
 
 ## 预发布（给测试快速验一个修复）
 
 ```sh
+# package.json 改成 0.7.1-rc.1
+npm run skills:build
+git commit -am "0.7.1-rc.1：<修了什么>"
 git tag -a v0.7.1-rc.1 -m "0.7.1-rc.1"
-git push origin v0.7.1-rc.1
+git push origin main --follow-tags
 ```
+
+rc 也要改 `package.json` 版本并重建技能包：发版 workflow 会校验 tag 与 `package.json` 一致，`skills:check` 也会比对 `.bundle.json` 的版本。
 
 规则：
 
-- `-rc.N` 只用来验证，不写进 CHANGELOG 的正式条目；正式发版时把 rc 里验证过的修复合并进 `x.y.z`。
+- `-rc.N` 只用来验证，不进 CHANGELOG 的正式条目；正式发版时把验证过的修复合并进 `x.y.z`（版本改回 `0.7.1`，tag `v0.7.1`）。
 - 同一个 bug 连续修两次就用 `-rc.2`，不要移动已推送的 tag。
 - 测试反馈请用「测试反馈」issue 模板，必须填 tag 与 `.agents/skills/.skills-version`。
 
 ## 测试机安装
 
-每个 tag 装到独立前缀，可以和旧版本并存：
+每个 tag 装到独立前缀，可以和旧版本并存。**优先用 Release 附件**（不 clone 仓库、不走 npm registry）：
+
+```sh
+npm install -g --prefix ~/hp/v0.7.1 \
+  https://github.com/AaronChen314/house-plan-toolkit/releases/download/v0.7.1/house-plan-toolkit-0.7.1.tgz
+```
+
+没有 Release 附件时（例如还没跑 CI）才退回从仓库装：
 
 ```sh
 npm install -g --prefix ~/hp/v0.7.1 github:AaronChen314/house-plan-toolkit#v0.7.1

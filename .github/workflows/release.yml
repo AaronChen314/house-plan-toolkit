@@ -1,0 +1,68 @@
+name: release
+
+# 打 tag 即发版：先过门禁，再把 npm pack 的 tarball 附到 Release 上。
+# 用 gh CLI 而不是第三方 action，少一个需要信任的依赖。
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 生成 release notes 需要历史；发布前的检查会看提交历史
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: 校验 tag 与 package.json 版本一致
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag $GITHUB_REF_NAME 与 package.json 版本 $pkg 不一致；先改版本号并 npm run skills:build"
+            exit 1
+          fi
+
+      - name: 门禁
+        run: npm run verify
+
+      - name: 打包
+        run: npm pack
+
+      - name: 校验 tarball 装得上
+        shell: bash
+        run: |
+          prefix="$RUNNER_TEMP/hp-check"
+          npm install -g --prefix "$prefix" ./house-plan-toolkit-*.tgz
+          "$prefix/bin/space" version
+          "$prefix/bin/space" capabilities --check
+          "$prefix/bin/space" skills check
+
+      - name: 建 Release 并附 tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" ./house-plan-toolkit-*.tgz \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            $prerelease
