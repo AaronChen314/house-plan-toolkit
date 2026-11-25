@@ -195,6 +195,8 @@ test('删掉索引文件后重建：不重新解析；删掉整个 .space 后从
   // 项目内的 cad-source 产物是权威派生物：删掉整个 .space 也能不解析地重建
   fs.mkdirSync(path.join(dir, 'output/cad'), {recursive: true});
   fs.writeFileSync(path.join(dir, 'output/cad/source.json'), JSON.stringify({schema: 'cad-source/v1', source: {file: 'plan.dxf'}, entities, issues: []}));
+  // 上一步 buildIndex 里的 statIndexFor 会缓存读句柄；Windows 上不关掉无法删除 .space。
+  closeReadHandles();
   fs.rmSync(path.join(dir, '.space'), {recursive: true, force: true});
   const fromArtifact = await buildIndex(store, {source: 'output/cad/source.json', parse});
   assert.equal(counter.calls, 1, '从索引产物重建不解析 DXF');
