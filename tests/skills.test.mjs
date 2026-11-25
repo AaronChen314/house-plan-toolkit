@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {buildSkills, syncSkills, listSkills} from '../src/cli/skills.mjs';
 
-const SKILLS = new URL('../skills/', import.meta.url).pathname;
+const SKILLS = fileURLToPath(new URL('../skills/', import.meta.url));
 
 test('技能包与 docs 单一源一致，链接可解析', () => {
   const r = buildSkills({checkOnly: true});

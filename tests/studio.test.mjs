@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {listCapabilities, resolveInside, projectOverview, runCapability} from '../src/capabilities/index.mjs';
 import {buildIndex, sqliteAvailable} from '../src/indexer/index.mjs';
 import {startStudio} from '../src/server/studio.mjs';
 
-const PROJECT = new URL('../examples/two-level/project.json', import.meta.url).pathname;
+const PROJECT = fileURLToPath(new URL('../examples/two-level/project.json', import.meta.url));
 const DIR = path.dirname(PROJECT);
 
 test('能力注册表：id 唯一、阶段合法、参数与实现齐全', () => {
@@ -37,7 +38,12 @@ test('项目概览包含目录规范结果与文件清单', () => {
   assert.equal(o.project.id, 'two-level');
   assert.equal(o.lint.passed, true);
   assert.ok(o.files.includes('data/model.json'));
-  assert.ok(o.files.some(f => f.startsWith('output/')));
+  // 不依赖本地构建产物：output/ 在 gitignore 里，干净克隆时不存在。
+  // 只校验清单形态：相对路径、不含生成目录之外的意外项。
+  assert.ok(o.files.every(f => !path.isAbsolute(f) && !f.startsWith('..')));
+  if (fs.existsSync(path.join(DIR, 'output'))) {
+    assert.ok(o.files.some(f => f.startsWith('output/')), '有 output/ 时应当列出来');
+  }
 });
 
 test('能力可被无头调用：空间数据校验', async () => {
