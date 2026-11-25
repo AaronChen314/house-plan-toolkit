@@ -326,7 +326,7 @@ space cap run <id> --project p [--<参数> 值 ...]
 
 识别结果与人工修正共用同一套契约：
 
-- 每个实体都有 `handle`、`provenance`、`confidence`；studio「底图描图」把墙/门/窗都画出来（墙紫、门橙、窗青，AI 橙黄，低置信度虚线红），切「判为无效」可逐个标记。
+- 每个实体都有 `handle`、`provenance`、`confidence`；studio「底图描图」把墙/门/窗都画出来，**颜色与 CAD 惯例同表**（墙紫、门橙、窗青、轴线品红、尺寸绿），来源用线型区分（实线 manual / 虚线 ai / 点线 cadvec），低置信度在起点画红点。切「判为无效」可逐个标记。
 - 人工补画的墙走 `annotation.trace`，`provenance: manual`；同一面墙重复提交是覆盖。
 - `space trace review` 按来源统计并列出低置信度实体。
 

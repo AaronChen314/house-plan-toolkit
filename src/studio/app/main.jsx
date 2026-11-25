@@ -327,8 +327,7 @@ function TracePanel({projectPath, files}) {
         {['wall', 'door', 'window', 'axis', 'dimension', 'furniture'].map(key => (
           <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
         ))}
-        <span class="meta" style={{color: '#d97706'}}>ai</span>
-        <span class="meta" style={{color: '#1a5fb4'}}>manual</span>
+        <span class="meta">实线=manual · 虚线=ai · 点线=cadvec · 红点=低置信度</span>
         <span class="meta">虚线红 = 低置信度（&lt; 0.8），切到「判为无效」后点它可标记</span>
       </div>
       {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
@@ -343,17 +342,17 @@ function TracePanel({projectPath, files}) {
               if (outer.length < 3) return null;
               const invalid = invalidSet.has(w.handle);
               const low = Number.isFinite(w.confidence) && w.confidence < 0.8;
-              // 颜色与 CAD 惯例同一张表：类别决定色相，来源只在线稿上做区分。
-              const paletteColor = palette()[w.category] || (w.kind === 'door' ? palette().door : w.kind === 'window' ? palette().window : palette().wall);
-              const base = w.provenance === 'ai' ? '#d97706' : w.provenance === 'manual' ? '#1a5fb4' : paletteColor;
-              const color = invalid ? '#b3261e' : base;
+              // 颜色只表示 CAD 类别（与惯例同表）；来源用线型区分，不抢颜色。
+              const color = invalid ? '#b3261e' : (palette()[w.category] || palette()[w.kind] || palette().wall);
+              const provenanceDash = invalid ? undefined : w.provenance === 'ai' ? `${vb.w / 200} ${vb.w / 300}` : w.provenance === 'cadvec' ? `${vb.w / 400} ${vb.w / 400}` : undefined;
               const points = outer.map(([x, y]) => `${x},${y}`).join(' ');
               return (
                 <polygon key={w.handle || i} points={points} fill={invalid ? 'rgba(179,38,30,0.25)' : color}
-                  fillOpacity={invalid ? 0.25 : 0.18} stroke={color} strokeWidth={Math.max(vb.w / 900, 6)}
-                  strokeDasharray={low ? `${vb.w / 200} ${vb.w / 300}` : undefined}
+                  fillOpacity={invalid ? 0.25 : 0.18} stroke={color} strokeWidth={Math.max(vb.w / 900, 6) * (w.provenance === 'manual' ? 1.6 : 1)}
+                  strokeDasharray={provenanceDash}
                   style={mode === 'invalid' ? 'cursor:pointer' : undefined}
                   onClick={e => markInvalid(w, e)}>
+                  {low && <circle cx={outer[0][0]} cy={outer[0][1]} r={Math.max(vb.w / 220, 30)} fill="#dc2626" opacity="0.85" />}
                   <title>{`${w.handle} · ${w.kind || 'wall'} · ${w.provenance || '未标记'}${Number.isFinite(w.confidence) ? ` · 置信度 ${w.confidence}` : ''}${invalid ? ' · 已判无效' : ''}`}</title>
                 </polygon>
               );

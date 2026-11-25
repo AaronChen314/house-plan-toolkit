@@ -210,7 +210,7 @@ $S trace save --project project.json --dataset d1 --file ai.json --actor agent
 $S trace review --project project.json --dataset d1
 ```
 
-**预期**：`trace review` 显示 `manual N · ai M`，并把 `confidence < 0.8` 的墙列为「待核对」；工作台「底图描图」用橙色画出 AI 墙、虚线标出低置信度，可切「判为无效」逐面标记。
+**预期**：`trace review` 显示 `manual N · ai M`，并把 `confidence < 0.8` 的墙列为「待核对」；工作台「底图描图」按 CAD 类别上色（墙紫/门橙/窗青），AI 用虚线、低置信度在起点画红点，可切「判为无效」逐面标记。
 
 ## 5. 渲染与交付
 
