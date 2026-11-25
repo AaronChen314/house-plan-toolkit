@@ -6,6 +6,7 @@
       "description": "发布用布局：只有 CLI、技能、文档、模板与合成示例",
       "allowDirectories": [
         ".githooks",
+        ".github",
         "bin",
         "docs",
         "examples",
@@ -16,13 +17,14 @@
         "tests"
       ],
       "allowFiles": [
+        ".gitattributes",
         ".gitignore",
         "AGENTS.md",
         "CHANGELOG.md",
         "LICENSE",
         "README.md",
-        "package.json",
         "package-lock.json",
+        "package.json",
         "publish-manifest.json",
         "requirements.txt"
       ],

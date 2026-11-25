@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 开发与调试说明
+    url: https://github.com/AaronChen314/house-plan-toolkit/blob/main/docs/contributing.md
+    about: 环境、分层落点、验证循环与十条红线
+  - name: 发版与测试流程
+    url: https://github.com/AaronChen314/house-plan-toolkit/blob/main/docs/release.md
+    about: 什么时候能打 tag、tester 怎么安装某个版本

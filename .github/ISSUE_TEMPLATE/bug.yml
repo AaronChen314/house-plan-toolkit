@@ -1,0 +1,65 @@
+name: Bug / 缺陷
+description: 行为和预期不符（开发自己发现的，或测试反馈里需要独立跟踪的）
+title: "[bug] "
+labels: ["kind:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先确认三件事，能省一轮来回：**版本 tag**、**完整命令**、**`space doctor` 输出**。
+        能复现的 issue 才排期；只有描述没有命令的，会退回补充。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: "`space version` 的 toolkit 字段，或安装用的 tag"
+      placeholder: v0.7.1-rc.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: 环境自检
+      description: 粘贴 `space doctor` 的完整输出（可只保留失败与警告项）
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现命令
+      description: 从 `space init` 或打开项目开始，逐条列出能复现的最小命令
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望与实际
+      placeholder: |
+        期望：
+        实际：
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 产物与证据
+      description: 产物路径、截图、`space store verify` 结果、浏览器控制台报错
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 已经在当前版本上跑过 `npm run verify`（改代码时）或 `space lint`（只用 CLI 时）
+        - label: 已确认不是项目数据问题（`space store verify --project` 通过）

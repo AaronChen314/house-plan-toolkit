@@ -88,4 +88,6 @@ node src/checks/bundle.mjs <project.json> <包名>   # 交付包离线打开（�
 npm run verify && npm run bench:index   # 全绿再提交
 ```
 
+打版本、预发布 tag 与测试机安装见 [发版与测试流程](release.md)。
+
 `git config core.hooksPath .githooks` 可启用仓库自带的 pre-commit（只跑 `npm test`，约 6 秒）。

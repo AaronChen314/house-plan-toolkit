@@ -1,5 +1,19 @@
 # 变更记录
 
+## 未发布（协作准备）
+
+### 新增
+
+- `.gitattributes`：文本统一 LF、二进制按字节保存。`skills/.bundle.json` 记录 22 个文档的哈希，行尾漂移会让 `skills:check` 与 `store verify` 在 Windows 上误报。
+- `.github/ISSUE_TEMPLATE/`：`bug`、`feature`、`test-feedback` 三个模板。bug 强制填版本 / 平台 / `space doctor` / 复现命令；feature 强制填「落在哪一层」与「契约影响」；test-feedback 强制填 tag 与 `.skills-version`。
+- `.github/workflows/verify.yml`：macOS + Windows × Node 22/24 跑 `npm run verify`；macOS 单独跑浏览器冒烟。
+- `docs/release.md`：版本规则、发版前必跑项、tag 与预发布（`-rc.N`）流程、测试机隔离安装、回滚约定。
+
+### 修复
+
+- `tests/store.test.mjs` 的「目录不可写」用例原来依赖 `chmod`，在 Windows 上不生效会假红；改为跨平台的「目标是目录」失败注入，POSIX 下额外保留 chmod 用例。
+
+
 ## 未发布（开发准备）
 
 ### 新增

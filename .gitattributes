@@ -1,0 +1,25 @@
+# 统一 LF：文本文件跨平台检出后哈希一致（skills/.bundle.json 与 store verify 都按内容哈希）。
+* text=auto eol=lf
+
+# 这些类型不做行尾转换；只要参与哈希或按字节解析，就必须按原样保存。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.glb binary
+*.gltf binary
+*.zip binary
+*.tgz binary
+*.gz binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.blend binary
+*.dwg binary
+*.dxf binary
+*.pyc binary

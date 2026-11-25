@@ -1,0 +1,60 @@
+name: 需求 / 能力
+description: 新增能力、改进流程或补契约
+title: "[feat] "
+labels: ["kind:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这个仓库的成本中心是契约：先说清「改哪一层」和「契约要不要变」，
+        否则实现会各自发明格式。
+  - type: dropdown
+    id: layer
+    attributes:
+      label: 落在哪一层
+      options:
+        - 契约 src/contracts
+        - 领域 src/domain
+        - 存储 / 索引 src/store src/indexer
+        - 能力 src/capabilities
+        - CLI src/cli
+        - 工作台 src/studio
+        - 文档 / 技能 docs skills
+    validations:
+      required: true
+  - type: dropdown
+    id: contract
+    attributes:
+      label: 契约影响
+      description: 决定版本号怎么走
+      options:
+        - 无（只加实现或文档）
+        - 兼容新增（新字段 / 新能力 id / 新命令）→ minor
+        - 不兼容变更（改字段语义 / 改 CLI 参数 / 删能力）→ major 或迁移
+        - 需要新数据契约（例如 MEP 点位、柜体 detail）
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: 需求
+      description: 谁在什么场景下需要；没有它现在的做法是什么
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 可度量的结论（命令输出、产物哈希、性能数字），不要写「体验更好」
+    validations:
+      required: true
+  - type: input
+    id: milestone
+    attributes:
+      label: 建议版本
+      placeholder: v0.8.0
+  - type: textarea
+    id: risks
+    attributes:
+      label: 风险与不做的情况
+      description: 什么情况下这个需求不值得做；与 docs/roadmap.md 的「未完成清单」是否相关

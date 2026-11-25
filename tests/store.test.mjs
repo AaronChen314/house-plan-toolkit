@@ -40,15 +40,28 @@ test('原子写入：内容正确、无残留临时文件、目标不被截断',
   writeFileAtomic(file, 'short');
   assert.equal(fs.readFileSync(file, 'utf8'), 'short', '覆盖后不应残留旧内容');
   assert.deepEqual(tempLeftovers(dir), []);
-  // 目录不可写时失败，但目标原样保留且不留临时文件
-  const readonly = path.join(dir, 'ro');
-  fs.mkdirSync(readonly);
-  writeFileAtomic(path.join(readonly, 'keep.txt'), 'original');
-  fs.chmodSync(readonly, 0o500);
-  assert.throws(() => writeFileAtomic(path.join(readonly, 'keep.txt'), 'new'));
-  fs.chmodSync(readonly, 0o700);
-  assert.equal(fs.readFileSync(path.join(readonly, 'keep.txt'), 'utf8'), 'original');
-  assert.deepEqual(tempLeftovers(readonly), []);
+
+  // 跨平台的失败注入：目标是目录时改名必然失败。失败后不留临时文件，原目标不变。
+  const blocked = path.join(dir, 'blocked');
+  fs.mkdirSync(blocked);
+  assert.throws(() => writeFileAtomic(blocked, 'new'));
+  assert.equal(fs.statSync(blocked).isDirectory(), true, '失败不应破坏原目标');
+  assert.deepEqual(tempLeftovers(dir), []);
+
+  // POSIX 额外验证「目录不可写」：Windows 上 chmod 不生效，跳过。
+  if (process.platform !== 'win32') {
+    const readonly = path.join(dir, 'ro');
+    fs.mkdirSync(readonly);
+    writeFileAtomic(path.join(readonly, 'keep.txt'), 'original');
+    fs.chmodSync(readonly, 0o500);
+    try {
+      assert.throws(() => writeFileAtomic(path.join(readonly, 'keep.txt'), 'new'));
+    } finally {
+      fs.chmodSync(readonly, 0o700);
+    }
+    assert.equal(fs.readFileSync(path.join(readonly, 'keep.txt'), 'utf8'), 'original');
+    assert.deepEqual(tempLeftovers(readonly), []);
+  }
 });
 
 test('派生物写入经存储登记并留下事件', () => {

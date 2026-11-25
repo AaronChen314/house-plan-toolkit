@@ -1,0 +1,59 @@
+name: 测试反馈
+description: 用打包好的 CLI（tag 安装）测试时发现的问题
+title: "[test] "
+labels: ["kind:test-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        测试只针对**打过 tag 的版本**。请务必填版本与 skill 版本，否则无法判断是不是已修。
+  - type: input
+    id: version
+    attributes:
+      label: 安装的 tag
+      placeholder: v0.7.1
+    validations:
+      required: true
+  - type: input
+    id: skills
+    attributes:
+      label: 技能版本
+      description: 项目里 `.agents/skills/.skills-version` 的内容（或 `space skills list`）
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - macOS
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: project
+    attributes:
+      label: 测试项目
+      description: 项目 id 与目录（不要贴客户信息；用 `space lint` 能过的项目）
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 操作步骤与结果
+      description: 跑了哪些命令、看到什么、期望什么
+    validations:
+      required: true
+  - type: textarea
+    id: artifacts
+    attributes:
+      label: 产物与截图
+      description: 生成物路径、截图、报错文本
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: 影响范围
+      options:
+        - label: 涉及已确认的数据集或设计版本（需要人工复核）
+        - label: 只在当前版本出现，上一版正常
+        - label: 能稳定复现

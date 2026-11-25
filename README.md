@@ -145,7 +145,7 @@ space skills sync --project my-house     # 安装到 my-house/.agents/skills
 
 ## 维护
 
-开发环境、分层落点与红线见 [docs/contributing.md](docs/contributing.md)。
+开发环境、分层落点与红线见 [docs/contributing.md](docs/contributing.md)；发版、预发布 tag 与测试机安装见 [docs/release.md](docs/release.md)。
 
 ```sh
 npm run verify                              # 快速门禁：测试 + 契约 + 目录 + 技能 + 发布边界
