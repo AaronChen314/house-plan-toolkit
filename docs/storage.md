@@ -300,6 +300,18 @@ space cap run <id> --project p [--<参数> 值 ...]
 - **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
 - **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
 
+### 颜色约定（一张表，三个消费者）
+
+`src/contracts/cad-colors.mjs` 是颜色语义的唯一定义：
+
+| 消费者 | 用法 |
+|---|---|
+| skill 文档 | `docs/cad-conventions.md` 的「颜色约定」一节，辅助 AI 判断线条含义 |
+| 识别映射 | 实体写 `category` 与 `confidence`：图层名命中 0.85，颜色唯一命中 0.5，颜色多义 0.25 且不给结论 |
+| studio 配色 | 直接 import 同一张表（esbuild 打进前端），图例与线稿颜色与 CAD 惯例一致 |
+
+关键前提：**颜色不是国标语义**，只是模板惯例；会被 ByLayer 图层 0、打印样式、单色出图、扫描件抹掉。所以颜色只给候选，图层名与几何特征优先。不同院配色不同时用 `overrideCategories()` 只覆盖差异项。
+
 ### 矢量图纸 → 结构化数据
 
 `cad.vector`（`src/capabilities/vector.mjs` + `src/domain/cadvec.mjs`）调用 `cadvec.py` 读矢量 PDF/DXF 的**图元坐标**（不靠像素识图），按国标惯例分类，产出：

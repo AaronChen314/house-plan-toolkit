@@ -11,3 +11,4 @@ export * from './rendering.mjs';
 export * from './plugins.mjs';
 export * from './global-index.mjs';
 export * from './tracing.mjs';
+export * from './cad-colors.mjs';

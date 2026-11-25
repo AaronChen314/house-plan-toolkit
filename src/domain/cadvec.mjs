@@ -2,6 +2,8 @@
 // cadvec 的 cad.json 已经按类型分好了（墙段/门窗/文字/轴线/尺寸），这里只做映射：
 // 同一份识别结果同时产出 cad-source/v1（studio 展示用）与 space-model 草稿（下游用）。
 
+import {classifyEntity, categoryColor} from '../contracts/cad-colors.mjs';
+
 export const CADVEC_KINDS = {
   solid: {label: '实心墙（承重）', confidence: 0.92, structure: 'load-bearing'},
   grey: {label: '灰实心墙', confidence: 0.85},
@@ -49,15 +51,23 @@ export function classifyOpening(opening) {
 
 // 结构化实体：墙、门窗、文字、轴线、尺寸，各自带来源与置信度。
 export function structuredEntities(cad) {
-  const walls = (cad.walls || []).map(wall => ({
-    handle: `CV-${wall.id}`,
-    rect: wallRect(wall),
-    thicknessMm: round(wall.t),
-    kind: wall.kind || 'outline',
-    provenance: 'cadvec',
-    confidence: (CADVEC_KINDS[wall.kind] || {confidence: 0.6}).confidence,
-    ...(CADVEC_KINDS[wall.kind]?.structure ? {structure: CADVEC_KINDS[wall.kind].structure} : {})
-  }));
+  const walls = (cad.walls || []).map(wall => {
+    const kind = CADVEC_KINDS[wall.kind] || {confidence: 0.6};
+    // 颜色只作提示：cadvec 的几何特征（实心/填充/双线）已经比颜色可靠。
+    const hint = classifyEntity({layer: 'WALL', aci: wall.aci});
+    return {
+      handle: `CV-${wall.id}`,
+      rect: wallRect(wall),
+      thicknessMm: round(wall.t),
+      kind: wall.kind || 'outline',
+      category: 'wall',
+      provenance: 'cadvec',
+      confidence: kind.confidence,
+      color: categoryColor('wall'),
+      ...(hint.category ? {colorHint: hint.category} : {}),
+      ...(kind.structure ? {structure: kind.structure} : {})
+    };
+  });
 
   const byId = new Map((cad.walls || []).map(w => [w.id, w]));
   const openings = (cad.openings || [])
@@ -65,10 +75,13 @@ export function structuredEntities(cad) {
       const wall = byId.get(opening.wall);
       if (!wall) return null;
       const kind = classifyOpening(opening);
+      const category = kind === 'door' ? 'door' : kind === 'window' ? 'window' : null;
       return {
         handle: `CO-${opening.id}`,
         kind,
+        category,
         type: opening.type,
+        color: category ? categoryColor(category) : categoryColor('other'),
         rect: openingRect(wall, opening),
         center: openingCenter(wall, opening),
         wall: `CV-${wall.id}`,
@@ -96,17 +109,17 @@ export function toCadSource(cad, {sourceFile = 'cadvec', underlay = null} = {}) 
   const {walls, openings, texts, axes} = structuredEntities(cad);
   const entities = [];
   for (const wall of walls) {
-    entities.push({id: wall.handle, handle: wall.handle, type: 'POLYLINE', layer: 'WALL', points: wall.rect, confidence: wall.confidence, provenance: wall.provenance});
+    entities.push({id: wall.handle, handle: wall.handle, type: 'POLYLINE', layer: 'WALL', category: 'wall', color: wall.color, points: wall.rect, confidence: wall.confidence, provenance: wall.provenance});
   }
   for (const opening of openings) {
     const layer = opening.kind === 'door' ? 'DOOR' : opening.kind === 'window' ? 'WINDOW' : 'OPENING';
-    entities.push({id: opening.handle, handle: opening.handle, type: 'POLYLINE', layer, points: opening.rect, confidence: opening.confidence, provenance: opening.provenance});
+    entities.push({id: opening.handle, handle: opening.handle, type: 'POLYLINE', layer, category: opening.category, color: opening.color, points: opening.rect, confidence: opening.confidence, provenance: opening.provenance});
   }
   for (const text of texts) {
-    entities.push({id: text.handle, handle: text.handle, type: 'TEXT', layer: 'TEXT', text: text.text, at: text.at, height: 200, provenance: text.provenance});
+    entities.push({id: text.handle, handle: text.handle, type: 'TEXT', layer: 'TEXT', category: 'text', color: categoryColor('text'), text: text.text, at: text.at, height: 200, provenance: text.provenance});
   }
   for (const axis of axes) {
-    entities.push({id: axis.handle, handle: axis.handle, type: 'AXIS', layer: 'AXIS', at: axis.at ?? null, provenance: axis.provenance});
+    entities.push({id: axis.handle, handle: axis.handle, type: 'AXIS', layer: 'AXIS', category: 'axis', color: categoryColor('axis'), at: axis.at ?? null, provenance: axis.provenance});
   }
   return {
     schema: 'cad-source/v1',
@@ -141,6 +154,7 @@ export function toModelDraft(cad, {floor = 'ground', height = 2800, clearHeight 
     footprint: {outer: o.rect, holes: []},
     sillMm: 900,
     headMm: 2400,
+    category: 'window',
     provenance: 'cadvec',
     confidence: o.confidence
   }));
@@ -157,7 +171,7 @@ export function toModelDraft(cad, {floor = 'ground', height = 2800, clearHeight 
       wallHeight: height,
       slabThickness: 150,
       slab: [], columns: [], outdoor: [], roofSlab: [], treads: [], guards: [], walkEntries: [], ceilingZones: [], furniture: [],
-      walls: walls.map(w => ({handle: w.handle, polygon: {outer: w.rect}, thicknessMm: w.thicknessMm, provenance: w.provenance, confidence: w.confidence, ...(w.structure ? {structure: w.structure} : {})})),
+      walls: walls.map(w => ({handle: w.handle, polygon: {outer: w.rect}, thicknessMm: w.thicknessMm, category: 'wall', provenance: w.provenance, confidence: w.confidence, ...(w.structure ? {structure: w.structure} : {})})),
       doors,
       windowOpenings: windows,
       trace: []

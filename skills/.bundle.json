@@ -6,7 +6,7 @@
       "skillSha256": "bf2f970e9e24a88857d23608175f1cdb1f07c181bf4e9a4cdabb00548d4e5716",
       "references": {
         "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
-        "cad-conventions.md": "cdb080e1f14f2c030f10469ea61c1f91fe15953ed78ee10eda4620baa4715378",
+        "cad-conventions.md": "03ceada199855561016301c0b3c55693aa19fbf58f64c408425c3176cb173a21",
         "route-dxf-layout.md": "4b654a3f47442b57c8fce74347c6311da96a4d65989b2d816e6812d4cccd07d0",
         "route-building.md": "848e9991524f658d62d27e3373467a69913d72b3c5bdb84db3ecadf6432d1bfd",
         "structure-format.md": "c0468594dae04891fb44d2e8776b14b0aba6ecf81f7b1114c8dd2ad182688bb8",

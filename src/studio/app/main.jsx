@@ -1,6 +1,7 @@
 import {h, Fragment, render} from 'preact';
 import {useState, useEffect, useRef, useMemo} from 'preact/hooks';
 import {createModelStage} from '../views/model3d.js';
+import {palette, classifyEntity, categoryColor} from '../../contracts/cad-colors.mjs';
 
 const fileUrl = (project, rel) => `/api/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(rel)}`;
 
@@ -322,10 +323,12 @@ function TracePanel({projectPath, files}) {
         <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 项`}</button>
       </div>
       <div class="toolbar">
-        <span class="meta">已有实体 {walls.length} 个（墙/门/窗） ·</span>
-        <span class="meta">manual</span>
-        <span class="meta" style="color:#d97706">ai</span>
-        <span class="meta" style="color:#7c3aed">cadvec</span>
+        <span class="meta">已有实体 {walls.length} 个 ·</span>
+        {['wall', 'door', 'window', 'axis', 'dimension', 'furniture'].map(key => (
+          <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
+        ))}
+        <span class="meta" style={{color: '#d97706'}}>ai</span>
+        <span class="meta" style={{color: '#1a5fb4'}}>manual</span>
         <span class="meta">虚线红 = 低置信度（&lt; 0.8），切到「判为无效」后点它可标记</span>
       </div>
       {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
@@ -340,7 +343,9 @@ function TracePanel({projectPath, files}) {
               if (outer.length < 3) return null;
               const invalid = invalidSet.has(w.handle);
               const low = Number.isFinite(w.confidence) && w.confidence < 0.8;
-              const base = w.kind === 'door' ? '#b45309' : w.kind === 'window' ? '#0e7490' : w.provenance === 'ai' ? '#d97706' : w.provenance === 'cadvec' ? '#7c3aed' : w.provenance === 'manual' ? '#1a5fb4' : '#5f6f66';
+              // 颜色与 CAD 惯例同一张表：类别决定色相，来源只在线稿上做区分。
+              const paletteColor = palette()[w.category] || (w.kind === 'door' ? palette().door : w.kind === 'window' ? palette().window : palette().wall);
+              const base = w.provenance === 'ai' ? '#d97706' : w.provenance === 'manual' ? '#1a5fb4' : paletteColor;
               const color = invalid ? '#b3261e' : base;
               const points = outer.map(([x, y]) => `${x},${y}`).join(' ');
               return (
@@ -711,7 +716,7 @@ function CadPreview({data}) {
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
-            <polyline key={e.id || i} fill="none" stroke={e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86'}
+            <polyline key={e.id || i} fill="none" stroke={e.color || categoryColor(e.category) || (e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
               onClick={() => setInfo({handle: e.handle, layer: e.layer})} style="cursor:pointer" />
           ))}
