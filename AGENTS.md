@@ -15,7 +15,7 @@
 
 ## 架构与计划
 
-分层、数据关系与写入规则见 [docs/architecture.md](docs/architecture.md)；接口与命令见 [docs/storage.md](docs/storage.md)；当前要做的能力与验收指标见 [docs/roadmap.md](docs/roadmap.md)。改代码前先确认改动属于哪一层：契约、领域、存储、能力、运行时、视图还是宿主。
+开工顺序：先读 [开发与调试](docs/contributing.md)（环境、分层落点、加能力/命令、验证循环、十条红线），再按任务查：分层与数据关系见 [docs/architecture.md](docs/architecture.md)，接口与命令见 [docs/storage.md](docs/storage.md)，进度与未完成项见 [docs/roadmap.md](docs/roadmap.md)。改代码前先确认改动属于哪一层：契约、领域、存储、能力、运行时、视图还是宿主。
 
 所有项目写入都经 `src/store/`（`writeArtifact` / `writeData` / `ingest`），能力不直接 `fs.writeFileSync`；`src/domain/` 只放纯函数。这两条由 `tests/store.test.mjs` 的静态扫描卡住。
 
@@ -31,6 +31,8 @@
 ## 验证
 
 ```sh
+npm run verify                      # 快速门禁：测试 + 契约 + 目录 + 技能 + 发布边界
+npm run verify:browser              # 浏览器冒烟（需要 Chrome）
 npm test
 space lint --project examples/two-level/project.json
 space build --project examples/two-level/project.json

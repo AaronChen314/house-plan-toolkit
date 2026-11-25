@@ -5,13 +5,14 @@
     "target": {
       "description": "发布用布局：只有 CLI、技能、文档、模板与合成示例",
       "allowDirectories": [
+        ".githooks",
         "bin",
-        "src",
+        "docs",
+        "examples",
         "schemas",
         "skills",
-        "docs",
+        "src",
         "templates",
-        "examples",
         "tests"
       ],
       "allowFiles": [

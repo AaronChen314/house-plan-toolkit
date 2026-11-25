@@ -1,0 +1,5 @@
+#!/bin/sh
+# 启用：git config core.hooksPath .githooks
+# 只跑快速测试；完整门禁是 npm run verify。
+set -e
+npm test --silent

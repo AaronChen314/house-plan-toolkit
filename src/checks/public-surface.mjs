@@ -3,6 +3,7 @@
 // 用法：node toolkit/checks/public-surface.mjs [--root .] [--manifest publish-manifest.json]
 //         [--layout target] [--denylist <私有词表>] [--history-ref <ref>] [--no-history] [--json]
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
@@ -184,7 +185,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const root = option('--root') || '.';
   const manifest = option('--manifest') || 'publish-manifest.json';
   const layout = option('--layout') || 'target';
-  const denylist = option('--denylist') || process.env.SPACE_DENYLIST;
+  // 词表默认位置：显式参数 → 环境变量 → ~/.config/house-plan/denylist.txt
+  const defaultDenylist = path.join(os.homedir(), '.config', 'house-plan', 'denylist.txt');
+  const denylist = option('--denylist') || process.env.SPACE_DENYLIST || (fs.existsSync(defaultDenylist) ? defaultDenylist : null);
   const json = args.includes('--json');
   const limit = Number(option('--limit') || 15);
 

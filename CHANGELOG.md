@@ -1,5 +1,19 @@
 # 变更记录
 
+## 未发布（开发准备）
+
+### 新增
+
+- `docs/contributing.md`：开工说明书——环境要求、分层落点、加能力/命令/契约的步骤、验证循环、十条红线与提交前检查。
+- `npm run verify`：一条命令跑快速门禁（232 项测试 + 能力契约 + 目录规范 + 技能包 + 发布边界，约 7 秒）。
+- `npm run verify:browser`：浏览器冒烟（白模 + 工作台，需 Chrome）。
+- `.githooks/pre-commit`：可选启用（`git config core.hooksPath .githooks`），提交前只跑 `npm test`；已加入发布白名单。
+
+### 修复
+
+- `verify:public` 现在会自动读取 `~/.config/house-plan/denylist.txt`（之前只在显式传 `--denylist` 或设 `SPACE_DENYLIST` 时才生效，与 README 说法不一致）。
+
+
 ## 0.7.0 — 2026-11-25
 
 ### 新增

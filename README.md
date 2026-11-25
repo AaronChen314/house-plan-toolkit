@@ -145,7 +145,11 @@ space skills sync --project my-house     # 安装到 my-house/.agents/skills
 
 ## 维护
 
+开发环境、分层落点与红线见 [docs/contributing.md](docs/contributing.md)。
+
 ```sh
+npm run verify                              # 快速门禁：测试 + 契约 + 目录 + 技能 + 发布边界
+npm run verify:browser                      # 浏览器冒烟（需要 Chrome）
 npm test                                    # 232 项：契约/存储/索引/能力/宿主/确定性
 npm run bench:index                         # 索引验收数字（五万图元，未达标退出码 1）
 npm run skills:check
