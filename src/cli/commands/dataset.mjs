@@ -17,7 +17,7 @@ export const commands = [
         const r = await runCapability({
           project,
           capability: 'dataset.build',
-          params: {source: args.take('--source'), id: args.take('--id'), confirm: args.flag('--confirm')},
+          params: {source: args.take('--source'), id: args.take('--id'), confirm: args.flag('--confirm'), model: args.take('--model')},
           log: line => print(line)
         });
         if (json) { print(JSON.stringify(r, null, 2)); return; }

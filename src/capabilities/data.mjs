@@ -325,7 +325,8 @@ export const capabilities = [
     params: [
       {key: 'source', label: 'cad-source 索引文件', type: 'output', required: true},
       {key: 'id', label: '数据集 id', type: 'text', required: true},
-      {key: 'confirm', label: '确认写入权威数据', type: 'boolean', default: false}
+      {key: 'confirm', label: '确认写入权威数据', type: 'boolean', default: false},
+      {key: 'model', label: '模型草稿（识别结果，可选）', type: 'text'}
     ],
     inputs: {source: 'cad-source/v1'},
     outputs: {dataset: 'space-dataset/v1', model: 'space-model/v1'},
@@ -333,7 +334,7 @@ export const capabilities = [
     requires: [],
     idempotent: true,
     errors: ['E_DATA_CONFIRM_REQUIRED', 'E_DATA_INVALID', 'E_DATA_REFERENCE', 'E_DATA_SCHEMA', 'E_EXEC_PARAM', 'E_STORE_CONFLICT', 'E_STORE_IO', 'E_STORE_PATH'],
-    async run(ctx, {source, id, confirm = false} = {}) {
+    async run(ctx, {source, id, confirm = false, model: modelDraftRel} = {}) {
       if (confirm !== true) {
         throw fail('E_DATA_CONFIRM_REQUIRED', '建立数据集会写 data/ 权威数据，需要 confirm: true', {id, source});
       }
@@ -353,7 +354,17 @@ export const capabilities = [
 
       const projectId = ctx.project?.id || id;
       const name = `${ctx.project?.name || id} · ${id} 草稿`;
-      const model = draftModel({projectId, name, id, source: sourceData});
+      // 有识别草稿（cad.vector）就用它，否则生成只含 trace 的空墙草稿。
+      let model;
+      if (modelDraftRel) {
+        const rel = ctx.store.rel(ctx.store.resolve(modelDraftRel));
+        if (!ctx.store.exists(rel)) throw fail('E_DATA_REFERENCE', `模型草稿不存在：${modelDraftRel}`, {file: rel});
+        const draft = ctx.store.readJson(rel);
+        if (draft?.schema !== 'space-model/v1') throw fail('E_DATA_SCHEMA', `${rel} 不是 space-model/v1`);
+        model = prepareModel({...draft, projectId: draft.projectId || projectId, name});
+      } else {
+        model = draftModel({projectId, name, id, source: sourceData});
+      }
       const dataset = emptyDataset({
         id,
         model: modelRel,
@@ -361,6 +372,10 @@ export const capabilities = [
         at: createdAt
       });
       dataset.assumptions = previewAssumptions('ground');
+      if (modelDraftRel) dataset.assumptions = [
+        ...dataset.assumptions,
+        {object: 'ground', field: 'wallHeight', value: model.floors[0].wallHeight ?? 2800, basis: 'preview', note: '来自识别草稿的竖向值，需人工确认'}
+      ];
       if (previous) {
         dataset.corrections = previous.corrections || [];
         dataset.confirmations = previous.confirmations || [];

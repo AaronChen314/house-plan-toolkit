@@ -136,6 +136,22 @@ $S doc render --project project.json --scheme a --seq 1 --force
 # 预期：重出成功，doc check 回到「全部与输入一致」
 ```
 
+## 4.4 矢量图纸识别（结构化数据）
+
+```sh
+$S cap run cad.vector --project project.json --file source/drawings/plan.dxf --out output/cad
+```
+
+**预期**：`识别：墙 N · 门 N · 窗 N · 文字 N · 轴线 N`，产出 `source.json` / `model-draft.json` / `underlay.png`。
+如果 cadvec 认为「没有找到墙」（合成图常见），会报错并提示改用 `cad.raster` + 手描——这不是缺陷。
+
+```sh
+$S dataset build --project project.json --source output/cad/source.json \
+  --id d1 --confirm --model output/cad/model-draft.json
+```
+
+**预期**：模型里出现识别出的墙/门/窗；`trace review` 能看到 `cadvec` 来源；studio 里墙紫、门橙、窗青。
+
 ## 4.5 PDF / 截图 → 底图 → 描图
 
 ```sh

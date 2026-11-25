@@ -300,6 +300,24 @@ space cap run <id> --project p [--<参数> 值 ...]
 - **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
 - **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
 
+### 矢量图纸 → 结构化数据
+
+`cad.vector`（`src/capabilities/vector.mjs` + `src/domain/cadvec.mjs`）调用 `cadvec.py` 读矢量 PDF/DXF 的**图元坐标**（不靠像素识图），按国标惯例分类，产出：
+
+| 产物 | 内容 |
+|---|---|
+| `output/cad/source.json` | `cad-source/v1`，图层 `WALL / DOOR / WINDOW / TEXT / AXIS`，每个实体带 `provenance: cadvec` 与 `confidence` |
+| `output/cad/model-draft.json` | `space-model` 草稿：墙 → `walls`（实心墙自动标 `structure: load-bearing`）、门 → `doors`、窗 → `windowOpenings` |
+| `output/cad/underlay.png` | 底图，studio 里叠着核对 |
+
+接进数据集：`space dataset build --source output/cad/source.json --model output/cad/model-draft.json --id d1 --confirm`。识别不出的竖向值（层高/窗台）按预览值写入并记进 `assumptions`，仍需人工确认。
+
+识别结果与人工修正共用同一套契约：
+
+- 每个实体都有 `handle`、`provenance`、`confidence`；studio「底图描图」把墙/门/窗都画出来（墙紫、门橙、窗青，AI 橙黄，低置信度虚线红），切「判为无效」可逐个标记。
+- 人工补画的墙走 `annotation.trace`，`provenance: manual`；同一面墙重复提交是覆盖。
+- `space trace review` 按来源统计并列出低置信度实体。
+
 ### PDF / 扫描件 → 底图
 
 `cad.raster`（`src/cad/raster.py`，PyMuPDF）把 PDF 或图片栅格化成 `output/cad/underlay.png`，返回 `mmPerPx` 供 studio 预填比例。只渲染不识别——识别交给 AI 提议或人工描图。源文件必须在项目内（例如 `source/drawings/`），越界路径会被存储层拒绝。

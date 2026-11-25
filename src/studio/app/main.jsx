@@ -206,7 +206,22 @@ function TracePanel({projectPath, files}) {
     let dead = false;
     fetch(fileUrl(projectPath, `data/datasets/${dataset}/model.json`))
       .then(r => (r.ok ? r.json() : null))
-      .then(m => { if (!dead) setWalls((m?.floors || []).flatMap(f => (f.walls || []).map(w => ({...w, floor: f.id})))); })
+      .then(m => {
+        if (dead) return;
+        const floors = m?.floors || [];
+        const walls = floors.flatMap(f => (f.walls || []).map(w => ({...w, kind: 'wall', floor: f.id})));
+        // 门窗也是识别出来的结构化实体：一样画出来，才能核对与判无效。
+        const doors = floors.flatMap(f => (f.doors || []).map(d => ({
+          handle: d.handle || `${f.id}:${d.id}`,
+          kind: 'door',
+          rect: d.footprint?.[0]?.outer || [d.hinge, d.closedEnd, d.openEnd].filter(Boolean),
+          provenance: d.provenance, confidence: d.confidence, floor: f.id
+        })));
+        const windows = floors.flatMap(f => (f.windowOpenings || []).flatMap(w => (w.footprint || []).map(p => ({
+          handle: w.handle || `${f.id}:${w.id}`, kind: 'window', rect: p.outer, provenance: w.provenance, confidence: w.confidence, floor: f.id
+        }))));
+        setWalls([...walls, ...doors, ...windows].filter(x => Array.isArray(x.rect) && x.rect.length >= 3));
+      })
       .catch(() => { if (!dead) setWalls([]); });
     return () => { dead = true; };
   }, [dataset, projectPath]);
@@ -307,7 +322,7 @@ function TracePanel({projectPath, files}) {
         <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 项`}</button>
       </div>
       <div class="toolbar">
-        <span class="meta">已有墙 {walls.length} 面 ·</span>
+        <span class="meta">已有实体 {walls.length} 个（墙/门/窗） ·</span>
         <span class="meta">manual</span>
         <span class="meta" style="color:#d97706">ai</span>
         <span class="meta" style="color:#7c3aed">cadvec</span>
@@ -321,11 +336,12 @@ function TracePanel({projectPath, files}) {
           <svg data-testid="trace-canvas" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onClick={click} style="cursor:crosshair">
             <image href={fileUrl(projectPath, image)} x={vb.x} y={vb.y} width={vb.w} height={vb.h} opacity="0.85" />
             {walls.map((w, i) => {
-              const outer = w.polygon?.outer || [];
+              const outer = w.rect || w.polygon?.outer || [];
               if (outer.length < 3) return null;
               const invalid = invalidSet.has(w.handle);
               const low = Number.isFinite(w.confidence) && w.confidence < 0.8;
-              const color = invalid ? '#b3261e' : w.provenance === 'ai' ? '#d97706' : w.provenance === 'cadvec' ? '#7c3aed' : w.provenance === 'manual' ? '#1a5fb4' : '#5f6f66';
+              const base = w.kind === 'door' ? '#b45309' : w.kind === 'window' ? '#0e7490' : w.provenance === 'ai' ? '#d97706' : w.provenance === 'cadvec' ? '#7c3aed' : w.provenance === 'manual' ? '#1a5fb4' : '#5f6f66';
+              const color = invalid ? '#b3261e' : base;
               const points = outer.map(([x, y]) => `${x},${y}`).join(' ');
               return (
                 <polygon key={w.handle || i} points={points} fill={invalid ? 'rgba(179,38,30,0.25)' : color}
@@ -333,7 +349,7 @@ function TracePanel({projectPath, files}) {
                   strokeDasharray={low ? `${vb.w / 200} ${vb.w / 300}` : undefined}
                   style={mode === 'invalid' ? 'cursor:pointer' : undefined}
                   onClick={e => markInvalid(w, e)}>
-                  <title>{`${w.handle} · ${w.provenance || '未标记'}${Number.isFinite(w.confidence) ? ` · 置信度 ${w.confidence}` : ''}${invalid ? ' · 已判无效' : ''}`}</title>
+                  <title>{`${w.handle} · ${w.kind || 'wall'} · ${w.provenance || '未标记'}${Number.isFinite(w.confidence) ? ` · 置信度 ${w.confidence}` : ''}${invalid ? ' · 已判无效' : ''}`}</title>
                 </polygon>
               );
             })}

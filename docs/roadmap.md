@@ -199,7 +199,8 @@
 
 待做：
 
-- [ ] `cad.vector`：把 `cadvec.py` 的 `cad.json`/`draft.json` 映射成 `cad-source/v1` + 模型草稿（需要真实 PDF/DXF 样本评估准确率）。
+- [x] `cad.vector`：`cadvec.py` 的 `cad.json` → `cad-source/v1`（墙/门/窗/文字/轴线，带 provenance 与 confidence）+ `space-model` 草稿；`dataset build --model` 可直接接入。
+- [ ] 真实样本上的识别准确率评估（需要一份实际设计院 PDF/DXF）。
 - [ ] 房间与门窗进 `space-model/v1`（现在只有墙/柱/家具），studio 才能画/改房间。
 - [ ] AI 提议的采集：把「图纸图片 → items JSON」做成可复用的 agent 流程（在环外跑模型，产物走 `annotation.trace`）。
 
