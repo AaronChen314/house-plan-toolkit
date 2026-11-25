@@ -1,6 +1,6 @@
 {
   "name": "house-plan-toolkit",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "户型空间工具包：CAD 转空间数据、平面核对、三维白模、设计同步与出图，含领域技能与规范",
   "type": "module",
   "license": "MIT",

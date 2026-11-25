@@ -1,5 +1,23 @@
 # 变更记录
 
+## 0.7.1 — 2026-11-25
+
+0.7.0 的 Release 流程在 Windows 上失败（tag 已推送但没生成 Release 产物），这一版修掉跨平台测试问题，是第一个可用的发布包。
+
+### 修复
+
+- **Windows 路径**：测试里用 `new URL(...).pathname` 取本地路径，Windows 得到 `/D:/a/...`，再 `path.resolve` 拼成 `D:\D:\a\...`；改用 `fileURLToPath`。
+- **Windows 文件句柄**：删除索引文件或整个 `.space/` 前先 `closeReadHandles()`——数据库句柄未关时 Windows 报 `EPERM`/`EBUSY`。
+- **假 Python**：测试里的 sh 脚本在 Windows 不可执行；改用 `process.execPath`（执行 `.py` 必然非零退出，效果等价）。
+- **测试不再依赖本地构建产物**：「项目概览」断言 `output/` 下必须有文件，但 `output/` 在 gitignore 里，干净克隆时不存在；改为只校验路径形态，存在时才断言。
+- **性能断言分层**：单测里「解析缓存命中 < 50ms」在共享 runner 上会假红，单测放宽为 500ms（只防没走缓存），真实 50ms 门槛仍由 `npm run bench:index` 独占进程卡。
+
+### 验证
+
+- CI：macOS + Windows × Node 22/24 全绿，macOS 浏览器冒烟通过。
+- 本地 `npm test` 232 项、`npm run verify`、`npm run verify:browser` 通过。
+
+
 ## 0.7.0 — 2026-11-25
 
 ### 新增

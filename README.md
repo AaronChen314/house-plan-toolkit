@@ -9,7 +9,7 @@
 需要 Node.js 20+、Python 3.10+。**几何索引需要 Node 22.5+**（`node:sqlite`）；低版本只是没有索引，其余能力按每次解析工作，`space doctor` 会提示。
 
 ```sh
-npm install -g github:AaronChen314/house-plan-toolkit#v0.7.0
+npm install -g github:AaronChen314/house-plan-toolkit#v0.7.1
 space setup          # 建 Python 虚拟环境并装依赖（装到包内 .venv）
 space doctor         # 自检 Node / Python / 依赖 / 浏览器 / 技能包
 ```

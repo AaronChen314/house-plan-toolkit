@@ -1,6 +1,6 @@
 {
   "schema": "space-lock/v1",
-  "toolkit": "0.7.0",
+  "toolkit": "0.7.1",
   "schemas": {
     "space-project": "v1",
     "space-model": "v1",
