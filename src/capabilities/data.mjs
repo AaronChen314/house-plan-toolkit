@@ -372,10 +372,12 @@ export const capabilities = [
         at: createdAt
       });
       dataset.assumptions = previewAssumptions('ground');
-      if (modelDraftRel) dataset.assumptions = [
-        ...dataset.assumptions,
-        {object: 'ground', field: 'wallHeight', value: model.floors[0].wallHeight ?? 2800, basis: 'preview', note: '来自识别草稿的竖向值，需人工确认'}
-      ];
+      if (modelDraftRel) {
+        // 识别草稿的竖向值覆盖同名假设，而不是并列（否则确认清单会出现两行 wallHeight）。
+        const extra = {object: 'ground', field: 'wallHeight', value: model.floors[0].wallHeight ?? 2800, basis: 'preview', note: '来自识别草稿的竖向值，需人工确认'};
+        const key = (a) => `${a.object}::${a.field}`;
+        dataset.assumptions = [...dataset.assumptions.filter(a => key(a) !== key(extra)), extra];
+      }
       if (previous) {
         dataset.corrections = previous.corrections || [];
         dataset.confirmations = previous.confirmations || [];
