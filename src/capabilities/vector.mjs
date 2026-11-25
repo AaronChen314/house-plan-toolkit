@@ -55,6 +55,8 @@ export const capabilities = [
         const underlayStaging = path.join(staging, 'underlay.png');
         const underlayRel = fs.existsSync(underlayStaging) ? relOf(ctx.dir, path.join(outDir, 'underlay.png')) : null;
         if (underlayRel) ctx.store.writeArtifact(underlayRel, fs.readFileSync(underlayStaging), {kind: 'image'});
+        // 底图元数据单独成文件：studio 只读它，不拉整包 cad-source。
+        let underlayMetaRel = null;
 
         // 底图比例与原点在 draft.json 的 underlay 里；studio 拿它自动对齐。
         let underlayMeta = null;
@@ -66,6 +68,10 @@ export const capabilities = [
               underlayMeta = {file: underlayRel, mmPerPx: d.underlay.mmPerPx, origin: [d.underlay.x ?? 0, d.underlay.y ?? 0], rotationDeg: 0};
             }
           } catch {}
+        }
+        if (underlayMeta) {
+          const metaWritten = ctx.store.writeArtifact(relOf(ctx.dir, path.join(outDir, 'underlay.json')), underlayMeta, {kind: 'json'});
+          underlayMetaRel = metaWritten.path;
         }
         const source = toCadSource(cad, {sourceFile: path.basename(src), underlay: underlayMeta});
         const sourceRel = relOf(ctx.dir, path.join(outDir, 'source.json'));
@@ -86,12 +92,14 @@ export const capabilities = [
           outputs: [
             {path: sourceWritten.path, kind: 'cad-source'},
             {path: draftWritten.path, kind: 'json'},
-            ...(underlayRel ? [{path: underlayRel, kind: 'image'}] : [])
+            ...(underlayRel ? [{path: underlayRel, kind: 'image'}] : []),
+            ...(underlayMetaRel ? [{path: underlayMetaRel, kind: 'json'}] : [])
           ],
           data: {
             source: sourceWritten.path,
             model: draftWritten.path,
             underlay: underlayRel,
+            underlayMeta: underlayMetaRel,
             stats: source.stats,
             mmPerUnit: cad.mmPerUnit ?? null,
             scaleFrom: cad.scale_from ?? null,

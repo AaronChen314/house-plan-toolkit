@@ -234,10 +234,10 @@ function TracePanel({projectPath, files}) {
   useEffect(() => {
     if (!image) return;
     let dead = false;
-    fetch(fileUrl(projectPath, 'output/cad/source.json'))
+    // 只读底图元数据（几百字节），不拉整包 cad-source。
+    fetch(fileUrl(projectPath, 'output/cad/underlay.json'))
       .then(r => (r.ok ? r.json() : null))
-      .then(source => {
-        const meta = source?.source?.underlay;
+      .then(meta => {
         if (dead || !meta || meta.file !== image) return;
         if (Number.isFinite(meta.mmPerPx)) setMmPerPx(String(meta.mmPerPx));
         if (Array.isArray(meta.origin)) setOrigin(meta.origin.join(','));
