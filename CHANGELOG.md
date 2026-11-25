@@ -1,35 +1,5 @@
 # 变更记录
 
-## 未发布（协作准备）
-
-### 新增
-
-- `.gitattributes`：文本统一 LF、二进制按字节保存。`skills/.bundle.json` 记录 22 个文档的哈希，行尾漂移会让 `skills:check` 与 `store verify` 在 Windows 上误报。
-- `.github/ISSUE_TEMPLATE/`：`bug`、`feature`、`test-feedback` 三个模板。bug 强制填版本 / 平台 / `space doctor` / 复现命令；feature 强制填「落在哪一层」与「契约影响」；test-feedback 强制填 tag 与 `.skills-version`。
-- `.github/workflows/verify.yml`：macOS + Windows × Node 22/24 跑 `npm run verify`；macOS 单独跑浏览器冒烟。
-- `docs/release.md`：版本规则、发版前必跑项、tag 与预发布（`-rc.N`）流程、测试机隔离安装、回滚约定。
-- 分支模型：`develop` 集成、`main` 只收 PR、tag 只从 `main` 打；CI 现在也覆盖 `develop`，并新增 `.githooks/pre-push` 在推送前跑 `npm run verify`。冲突规则与「生成物不手解」写进 `docs/contributing.md`。
-- `.github/workflows/release.yml`：打 tag 自动发版——校验 tag 与 `package.json` 版本一致、跑门禁、`npm pack`、干净前缀试装（`space version` / `capabilities --check` / `skills check`），最后用 `gh` 建 Release 并附 tarball；带 `-` 的 tag 自动标 prerelease。测试机改从 Release 附件安装，不 clone 仓库。
-
-### 修复
-
-- `tests/store.test.mjs` 的「目录不可写」用例原来依赖 `chmod`，在 Windows 上不生效会假红；改为跨平台的「目标是目录」失败注入，POSIX 下额外保留 chmod 用例。
-
-
-## 未发布（开发准备）
-
-### 新增
-
-- `docs/contributing.md`：开工说明书——环境要求、分层落点、加能力/命令/契约的步骤、验证循环、十条红线与提交前检查。
-- `npm run verify`：一条命令跑快速门禁（232 项测试 + 能力契约 + 目录规范 + 技能包 + 发布边界，约 7 秒）。
-- `npm run verify:browser`：浏览器冒烟（白模 + 工作台，需 Chrome）。
-- `.githooks/pre-commit`：可选启用（`git config core.hooksPath .githooks`），提交前只跑 `npm test`；已加入发布白名单。
-
-### 修复
-
-- `verify:public` 现在会自动读取 `~/.config/house-plan/denylist.txt`（之前只在显式传 `--denylist` 或设 `SPACE_DENYLIST` 时才生效，与 README 说法不一致）。
-
-
 ## 0.7.0 — 2026-11-25
 
 ### 新增
@@ -56,6 +26,77 @@
 - 全局索引：同一项目重复同步是更新而不是新增；表结构里没有任何几何列；`list` 不需要 `--project`；索引落在项目之外，项目 `store verify` 不受影响。
 - 离线验收：`PASS bundle offline · 7 个文件 · 清单页零外部请求 · 快照 file:// 打开零网络`。
 
+### M4 渲染与交付
+
+#### 新增
+
+- `src/contracts/rendering.mjs`：渲染记录（`space-render/v1`）、固定机位、基础图/风格图分离、交付包清单（`space-bundle/v1`）、只读快照（`space-snapshot/v1`）、写权限守卫。
+- `src/domain/colorplan.mjs`：确定性彩平（固定图层顺序、鞋带公式算面积、文字全部来自数据）。
+- `src/domain/bundle.mjs`：交付包条目归位、离线清单页、单文件快照 HTML（内嵌 JSON 安全转义）。
+- `src/domain/rendering.mjs`：机位指纹、条目排序去重、包完整性判定、风格参数校验。
+- 能力：`render.colorplan`、`bundle.export`、`deliver.snapshot`。
+- CLI：`space render colorplan`、`space bundle export`、`space deliver snapshot`。
+
+#### 验收
+
+- `npm test` 217 项全绿（新增渲染契约 7、彩平 8、交付包 9、端到端 4）。
+- 同输入彩平两次字节一致；两个交付包的条目与哈希一致。
+- 交付包逐文件哈希与源一致；快照哈希清单包含设计版本哈希。
+- 渲染与交付过程中 `data/` 一个字节未变（写权限守卫）。
+- `render.interior` 按未知能力拒绝，`space render interior` 提示「只有契约」。
+
+#### 已知缺口
+
+- `render.interior` 未实现：需要栅格渲染器，契约与风格分层已就绪。
+
+### 能力门面
+
+#### 新增
+
+- 计划中能力登记 `PLANNED_CAPABILITIES`（`doc.mep`、`doc.furniture`、`render.interior`）：只有契约与 `blockedBy`，不带实现；`validatePlanned` 卡住「计划项带实现」「缺阻塞原因」「id 重复」。
+- CLI 通用门面 `space cap list|show|run`：参数由契约生成（number / boolean / 文本），契约外参数直接报错；未实现能力按 `E_EXEC_NOT_IMPLEMENTED` 拒绝并带出阻塞原因。
+- 工作台门面：侧边栏显示计划中能力（置灰 + 「·」），点进去只有说明与阻塞原因，不渲染执行按钮；`/api/capabilities` 同时返回 `planned`。
+- 新错误码 `E_EXEC_NOT_IMPLEMENTED`（执行类）：区分「没登记」与「登记了但没实现」。
+
+#### 变更
+
+- `space capabilities` 输出改为 `{implemented, planned}`（原来是能力数组）；`--check` 同时校验两份登记。
+- `runCapability` 与工作台运行接口对计划项返回同一条可读错误，两端说法一致。
+
+#### 验收
+
+- `npm test` 223 项全绿（新增门面 6 项）。
+- 每条计划项在 CLI（`cap list` / `cap show`）与工作台（`/api/capabilities`）上都可达，且都不可执行。
+- 已实现的 22 个能力全部能从 `space cap run` 走通参数解析。
+
+### 开发准备
+
+#### 新增
+
+- `docs/contributing.md`：开工说明书——环境要求、分层落点、加能力/命令/契约的步骤、验证循环、十条红线与提交前检查。
+- `npm run verify`：一条命令跑快速门禁（232 项测试 + 能力契约 + 目录规范 + 技能包 + 发布边界，约 7 秒）。
+- `npm run verify:browser`：浏览器冒烟（白模 + 工作台，需 Chrome）。
+- `.githooks/pre-commit`：可选启用（`git config core.hooksPath .githooks`），提交前只跑 `npm test`；已加入发布白名单。
+
+#### 修复
+
+- `verify:public` 现在会自动读取 `~/.config/house-plan/denylist.txt`（之前只在显式传 `--denylist` 或设 `SPACE_DENYLIST` 时才生效，与 README 说法不一致）。
+
+### 协作准备
+
+#### 新增
+
+- `.gitattributes`：文本统一 LF、二进制按字节保存。`skills/.bundle.json` 记录 22 个文档的哈希，行尾漂移会让 `skills:check` 与 `store verify` 在 Windows 上误报。
+- `.github/ISSUE_TEMPLATE/`：`bug`、`feature`、`test-feedback` 三个模板。bug 强制填版本 / 平台 / `space doctor` / 复现命令；feature 强制填「落在哪一层」与「契约影响」；test-feedback 强制填 tag 与 `.skills-version`。
+- `.github/workflows/verify.yml`：macOS + Windows × Node 22/24 跑 `npm run verify`；macOS 单独跑浏览器冒烟。
+- `docs/release.md`：版本规则、发版前必跑项、tag 与预发布（`-rc.N`）流程、测试机隔离安装、回滚约定。
+- 分支模型：`develop` 集成、`main` 只收 PR、tag 只从 `main` 打；CI 现在也覆盖 `develop`，并新增 `.githooks/pre-push` 在推送前跑 `npm run verify`。冲突规则与「生成物不手解」写进 `docs/contributing.md`。
+- `.github/workflows/release.yml`：打 tag 自动发版——校验 tag 与 `package.json` 版本一致、跑门禁、`npm pack`、干净前缀试装（`space version` / `capabilities --check` / `skills check`），最后用 `gh` 建 Release 并附 tarball；带 `-` 的 tag 自动标 prerelease。测试机改从 Release 附件安装，不 clone 仓库。
+
+#### 修复
+
+- `tests/store.test.mjs` 的「目录不可写」用例原来依赖 `chmod`，在 Windows 上不生效会假红；改为跨平台的「目标是目录」失败注入，POSIX 下额外保留 chmod 用例。
+
 ### 文档
 
 - README 重写：版本到 0.7.0、Node 门槛（索引需 22.5+）、按阶段重排的命令表、目录与项目侧约定同步到数据集/设计版本/交付目录。
@@ -74,52 +115,6 @@
 - `render.interior`：卡在渲染器选型（Blender / three 离屏），不属于确定性 SVG 链。
 - 存储实现切换：按 roadmap 条件搁置——等真正出现多人并发需求再评估。
 - 现有项目迁移：属使用者项目目录，仓库内不涉及。
-
-
-## 未发布（能力门面）
-
-### 新增
-
-- 计划中能力登记 `PLANNED_CAPABILITIES`（`doc.mep`、`doc.furniture`、`render.interior`）：只有契约与 `blockedBy`，不带实现；`validatePlanned` 卡住「计划项带实现」「缺阻塞原因」「id 重复」。
-- CLI 通用门面 `space cap list|show|run`：参数由契约生成（number / boolean / 文本），契约外参数直接报错；未实现能力按 `E_EXEC_NOT_IMPLEMENTED` 拒绝并带出阻塞原因。
-- 工作台门面：侧边栏显示计划中能力（置灰 + 「·」），点进去只有说明与阻塞原因，不渲染执行按钮；`/api/capabilities` 同时返回 `planned`。
-- 新错误码 `E_EXEC_NOT_IMPLEMENTED`（执行类）：区分「没登记」与「登记了但没实现」。
-
-### 变更
-
-- `space capabilities` 输出改为 `{implemented, planned}`（原来是能力数组）；`--check` 同时校验两份登记。
-- `runCapability` 与工作台运行接口对计划项返回同一条可读错误，两端说法一致。
-
-### 验收
-
-- `npm test` 223 项全绿（新增门面 6 项）。
-- 每条计划项在 CLI（`cap list` / `cap show`）与工作台（`/api/capabilities`）上都可达，且都不可执行。
-- 已实现的 22 个能力全部能从 `space cap run` 走通参数解析。
-
-
-## 未发布（M4：彩平 + 交付包 + 快照）
-
-### 新增
-
-- `src/contracts/rendering.mjs`：渲染记录（`space-render/v1`）、固定机位、基础图/风格图分离、交付包清单（`space-bundle/v1`）、只读快照（`space-snapshot/v1`）、写权限守卫。
-- `src/domain/colorplan.mjs`：确定性彩平（固定图层顺序、鞋带公式算面积、文字全部来自数据）。
-- `src/domain/bundle.mjs`：交付包条目归位、离线清单页、单文件快照 HTML（内嵌 JSON 安全转义）。
-- `src/domain/rendering.mjs`：机位指纹、条目排序去重、包完整性判定、风格参数校验。
-- 能力：`render.colorplan`、`bundle.export`、`deliver.snapshot`。
-- CLI：`space render colorplan`、`space bundle export`、`space deliver snapshot`。
-
-### 验收
-
-- `npm test` 217 项全绿（新增渲染契约 7、彩平 8、交付包 9、端到端 4）。
-- 同输入彩平两次字节一致；两个交付包的条目与哈希一致。
-- 交付包逐文件哈希与源一致；快照哈希清单包含设计版本哈希。
-- 渲染与交付过程中 `data/` 一个字节未变（写权限守卫）。
-- `render.interior` 按未知能力拒绝，`space render interior` 提示「只有契约」。
-
-### 已知缺口
-
-- `render.interior` 未实现：需要栅格渲染器，契约与风格分层已就绪。
-
 
 ## 0.6.0 — 2026-11-25
 
@@ -153,7 +148,6 @@ M3 按计划只做「契约接口 + 一种图打通」，水电图与定制家�
 - `doc.mep`：`space-model/v1` 里没有点位概念（插座 / 水位 / 回路），需要先扩数据契约再出图。
 - `doc.furniture`：柜体轮廓、高度、柜顶有效顶面数据齐全，缺 `detail`（层板 / 抽屉 / 挂衣区）的字段约定。
 - 两者都已拒绝调用（`E_EXEC_UNKNOWN_CAPABILITY`），`space doc list` 会明确标注「只有契约与图层规范，未出图」。
-
 
 ## 0.5.0 — 2026-11-25
 
