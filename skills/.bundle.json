@@ -7,7 +7,7 @@
       "references": {
         "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
         "cad-conventions.md": "457d0a29d338ab7257526eb6d742153aa66ca23cf81d81b69924073c83e22aa0",
-        "component-catalog.md": "7b5002d1fd77fc764f77428208d6878247d41802a056092c99db3dbaafc57d99",
+        "component-catalog.md": "14034f2d4c862193cae98226eb62ba2ad37df552fde8278dd83cf66702b2590a",
         "cad-component-split.md": "fb60b424a2d3b4552953888c68d39bb869bd208324924731cb01ff6f112ea29d",
         "route-dxf-layout.md": "cf48018252e5b30ace47b0e2d1e890d9267dafc3f73f284b704a5e97d7a77ff2",
         "route-building.md": "7fcf2aaae5acff410cfd5dbd408b1cf2d49b115a3e9107064d28a1ace34a752e",

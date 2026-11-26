@@ -126,6 +126,7 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
           if (!store.exists(sourceRel)) throw new Error('还没有图元索引：先跑 cad.inspect');
           const ids = store.readJson(sourceRel).entities.map(e => e.id);
           if (!ids.includes(body.id)) throw new Error(`图元索引里没有 ${body.id}`);
+          const sourceSha = crypto.createHash('sha256').update(store.readBuffer(sourceRel)).digest('hex');
           const doc = store.exists(target) ? store.readJson(target) : componentsDoc({sourceSha256: sourceSha});
           if (doc.source?.sha256 && doc.source.sha256 !== sourceSha) {
             throw new Error('构件标注对应的图元索引已变（源文件或解析版本变了）：先重新导入，避免张冠李戴');

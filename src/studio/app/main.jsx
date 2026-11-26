@@ -785,7 +785,7 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
       <div class="toolbar">
         <button onClick={() => setView(null)}>全图</button>
         <span class="meta">{lines.length} 条线 · {texts.length} 段文字</span>
-        {info && <span class="meta">已选：<code>{info.handle || info.text || ''}</code></span>}
+        {info && <span class="meta">已选：<code>{info.id || info.text || ''}</code></span>}
         {showKinds && <button onClick={() => setHidden(new Set())}>全部显示</button>}
         {showKinds && <button onClick={() => setHidden(new Set(Object.keys(counts)))}>全部隐藏</button>}
       </div>
@@ -804,13 +804,16 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
+            // 容器用 pointer capture 做平移，click 会被重定向到 svg：
+            // 所以在 pointerdown 就选中并阻止冒泡，别等 click。
             <polyline key={e.id || i} data-id={e.id} fill="none" stroke={e.category === UNASSIGNED ? '#b3b8bd' : kindColor(components, e.category, '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
-              onClick={() => setInfo(e)} style="cursor:pointer" />
+              onPointerDown={ev => { ev.stopPropagation(); setInfo(e); }} style="cursor:pointer" />
           ))}
           {texts.map((t, i) => (
             <text key={i} x={t.at[0]} y={-t.at[1]} font-size={t.height || 100} fill="#34483b"
-              transform={`rotate(${-t.rotation || 0} ${t.at[0]} ${-t.at[1]})`} onClick={() => setInfo({text: t.text, handle: t.handle, category: t.category})}>{t.text}</text>
+              transform={`rotate(${-t.rotation || 0} ${t.at[0]} ${-t.at[1]})`}
+              onPointerDown={ev => { ev.stopPropagation(); setInfo({text: t.text, id: t.id, layer: t.layer, category: t.category}); }}>{t.text}</text>
           ))}
         </svg>
       </div>

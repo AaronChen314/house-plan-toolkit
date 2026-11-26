@@ -28,6 +28,7 @@ test('geometry 是几何用法提示：只认 ring / open / span，写错要报'
   const doc = componentsDoc({kinds: {
     wall: {label: '墙', geometry: 'open'},
     pier: {label: '柱', geometry: 'ring'},
+    floor: {label: '地面', geometry: 'area'},
     odd: {label: '怪', geometry: 'closed'}
   }});
   const problems = validateComponents(doc);

@@ -12,7 +12,7 @@ export const SCHEMA = 'cad-components/v1';
 // 不参与判定。
 const PROVENANCE = ['manual', 'ai', 'rule', 'import'];
 // 几何用法提示：只说明「这类构件怎么用几何」，不参与判定，也不枚举构件类型。
-export const GEOMETRY = ['ring', 'open', 'span'];
+export const GEOMETRY = ['ring', 'open', 'span', 'area'];
 
 export function componentsDoc({sourceSha256, kinds = {}, assignments = {}, instances = {}} = {}) {
   return {schema: SCHEMA, source: {sha256: sourceSha256 || null}, kinds, assignments, ...(Object.keys(instances).length ? {instances} : {})};
