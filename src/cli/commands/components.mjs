@@ -114,9 +114,18 @@ export const commands = [
       }
 
       if (action === 'kinds') {
-        if (!has) { print(`还没有构件标注：先 import 一份（kinds 随文件进来）`); return; }
-        const doc = store.readJson(TARGET);
         const add = args.take('--add');
+        // 没有标注文件时允许用 --add 起一份：项目不必先有旧标注才能定类别。
+        let doc;
+        if (has) doc = store.readJson(TARGET);
+        else if (add) {
+          if (!store.exists(sourceRel)) throw new Error('还没有图元索引：先跑 cad inspect，再定构件类别');
+          const sha = crypto.createHash('sha256').update(store.readBuffer(sourceRel)).digest('hex');
+          doc = componentsDoc({sourceSha256: sha});
+        } else {
+          print('还没有构件标注：用 space components kinds --add <键> --label <名> 起一份');
+          return;
+        }
         if (add) {
           // args.take 只能取一次：先取值再组装，别在断言里重复消费。
           const label = args.take('--label');
