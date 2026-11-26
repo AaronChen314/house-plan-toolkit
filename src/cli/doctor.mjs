@@ -47,7 +47,8 @@ export async function runDoctor({project, python} = {}) {
   const nodeMajor = Number(process.versions.node.split('.')[0]);
   add('Node', nodeMajor >= 20 ? 'ok' : 'fail', `v${process.versions.node}`, nodeMajor >= 20 ? undefined : '升级到 Node.js 20 或更高');
 
-  const py = python || findPython(project);
+  // project 是 project.json 的路径，venv 在项目目录下：先取目录再查。
+  const py = python || findPython(project ? path.dirname(path.resolve(project)) : undefined);
   const pyv = run(py, ['-V']);
   if (!pyv.ok) add('Python', 'fail', `找不到可用的 Python（${py}）`, '安装 Python 3.10+，或运行 space setup');
   else {
