@@ -60,7 +60,8 @@ export const capabilities = [
     description: '保留图层、块实例路径与源文件指纹，不把线条猜成墙。',
     params: [
       {key: 'dxf', label: 'DXF 文件', type: 'path', required: true, accept: '.dxf'},
-      {key: 'out', label: '输出目录', type: 'text', default: 'output/cad'}
+      {key: 'out', label: '输出目录', type: 'text', default: 'output/cad'},
+      {key: 'blocks', label: '展开块内图元（家具块很多，默认不展开）', type: 'boolean', default: false}
     ],
     inputs: {dxf: 'path:dxf'},
     outputs: {index: 'cad-source/v1'},
@@ -68,7 +69,7 @@ export const capabilities = [
     requires: ['python:cad'],
     idempotent: true,
     errors: ['E_EXEC_PARAM', 'E_EXEC_DEPENDENCY', 'E_EXEC_PROCESS', 'E_STORE_PATH', 'E_STORE_IO'],
-    async run(ctx, {dxf, out = 'output/cad'}) {
+    async run(ctx, {dxf, out = 'output/cad', blocks = false}) {
       const src = resolveInside(ctx.dir, dxf);
       if (!fs.existsSync(src)) throw fail('E_EXEC_PARAM', `文件不存在：${dxf}`);
       const outDir = resolveInside(ctx.dir, out);
