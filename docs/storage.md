@@ -312,6 +312,14 @@ space cap run <id> --project p [--<参数> 值 ...]
 
 关键前提：**颜色不是国标语义**，只是模板惯例；会被 ByLayer 图层 0、打印样式、单色出图、扫描件抹掉。所以颜色只给候选，图层名与几何特征优先。不同院配色不同时用 `overrideCategories()` 只覆盖差异项。
 
+### 识别不在 CLI 里
+
+CLI **不做语义识别**：不猜墙、不判断门窗类型。它只做四件事——格式准备（DWG→DXF、PDF/图片→底图）、
+图元索引（`cad.inspect`，只保留图层/文字/几何，不解释含义）、校验与存盘、展示与追溯。
+
+历史上的规则识别脚本（`cadvec.py`、`cadsplit.py`、`analyze.py` 等）已从 `space run` 清单移出，
+文件保留在 `src/legacy/scripts/` 供参考，不再是产品路径。图纸怎么读交给 AI。
+
 ### AI 识别怎么接（主路径）
 
 CLI **不做感知**：看懂图纸是模型的事，CLI 负责给任务单、校验结果、存盘、追溯。
@@ -331,33 +339,9 @@ space trace review --project <project.json> --dataset d1        # 按来源统�
 - `--dry-run` 只跑契约校验，不会写坏数据；写盘后每条记录留操作者、时间、底图与来源分布。
 - studio 里 AI 墙用虚线画、低置信度起点画红点，人工可判无效或补画。
 
-### 矢量图纸 → 结构化数据（可选预填）
-
-`cad.vector` 是基于**几何规则**的预填（平行双线配对、实心填充、断口弧），不是感知。规则对图上能到 mm 级，对画法不规范、墙在图层 0、描边墙的图会失效——真实项目里请把它当作「能预填就预填，不能就交给 AI 或人工」。
-
-> 实测（一个真实住宅项目的结构图与方案图）：结构图只认出 2 面墙（`typical_wall_t` 59mm），方案图直接拒绝（建议 cadsplit）；同批 DWG 转换正常。**结论：规则的适用面比想象窄，主路径应当是 AI。**
-
-
-
-`cad.vector`（`src/capabilities/vector.mjs` + `src/domain/cadvec.mjs`）调用 `cadvec.py` 读矢量 PDF/DXF 的**图元坐标**（不靠像素识图），按国标惯例分类，产出：
-
-| 产物 | 内容 |
-|---|---|
-| `output/cad/source.json` | `cad-source/v1`，图层 `WALL / DOOR / WINDOW / TEXT / AXIS`，每个实体带 `provenance: cadvec` 与 `confidence` |
-| `output/cad/model-draft.json` | `space-model` 草稿：墙 → `walls`（实心墙自动标 `structure: load-bearing`）、门 → `doors`、窗 → `windowOpenings` |
-| `output/cad/underlay.png` | 底图，studio 里叠着核对 |
-
-接进数据集：`space dataset build --source output/cad/source.json --model output/cad/model-draft.json --id d1 --confirm`。识别不出的竖向值（层高/窗台）按预览值写入并记进 `assumptions`，仍需人工确认。
-
-识别结果与人工修正共用同一套契约：
-
-- 每个实体都有 `handle`、`provenance`、`confidence`；studio「底图描图」把墙/门/窗都画出来，**颜色与 CAD 惯例同表**（墙紫、门橙、窗青、轴线品红、尺寸绿），来源用线型区分（实线 manual / 虚线 ai / 点线 cadvec），低置信度在起点画红点。切「判为无效」可逐个标记。
-- 人工补画的墙走 `annotation.trace`，`provenance: manual`；同一面墙重复提交是覆盖。
-- `space trace review` 按来源统计并列出低置信度实体。
-
 ### PDF / 扫描件 → 底图
 
-`cad.raster`（`src/cad/raster.py`，PyMuPDF）把 PDF 或图片栅格化成 `output/cad/underlay.png`，返回 `mmPerPx` 供 studio 预填比例。只渲染不识别——识别交给 AI 提议或人工描图。源文件必须在项目内（例如 `source/drawings/`），越界路径会被存储层拒绝。
+`cad.raster`（`src/cad/raster.py`）把 PDF / 图片 / **DXF** 栅格化成 `output/cad/underlay.png`，并写 `output/cad/underlay.json`（`mmPerPx` 与原点）。PDF 与图片用 PyMuPDF 渲染；DXF 用 ezdxf 取折线自己画（1 像素 = 4mm，原点=DWG 坐标最小值），这样 DWG/DXF 也能给 AI 看。studio 与 `trace brief` 都读这份元数据对齐。只渲染不识别——识别交给 AI 提议或人工描图。源文件必须在项目内（例如 `source/drawings/`），越界路径会被存储层拒绝。
 
 ### DWG 转 DXF
 

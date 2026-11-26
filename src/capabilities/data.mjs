@@ -354,7 +354,7 @@ export const capabilities = [
 
       const projectId = ctx.project?.id || id;
       const name = `${ctx.project?.name || id} · ${id} 草稿`;
-      // 有识别草稿（cad.vector）就用它，否则生成只含 trace 的空墙草稿。
+      // 有结构化草稿（AI 产出或人工编写）就用它，否则生成只含 trace 的空墙草稿。
       let model;
       if (modelDraftRel) {
         const rel = ctx.store.rel(ctx.store.resolve(modelDraftRel));

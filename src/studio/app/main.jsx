@@ -346,7 +346,7 @@ function TracePanel({projectPath, files}) {
         {['wall', 'door', 'window', 'axis', 'dimension', 'furniture'].map(key => (
           <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
         ))}
-        <span class="meta">实线=manual · 虚线=ai · 点线=cadvec · 红点=低置信度</span>
+        <span class="meta">实线=manual · 虚线=ai · 点线=其他来源 · 红点=低置信度</span>
         <span class="meta">切到「判为无效」后点实体即可标记</span>
       </div>
       {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}

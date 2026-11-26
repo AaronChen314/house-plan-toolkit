@@ -184,6 +184,11 @@ printf '%s\\n' '{"pages":1,"page":0,"dpi":200,"width":800,"height":600,"mmPerPx"
     assert.equal(r.data.mmPerPx, 0.127);
     assert.equal(r.data.file, 'output/cad/underlay.png');
     assert.ok(fs.existsSync(path.join(dir, 'output/cad/underlay.png')));
+    // 底图元数据供 trace brief 用：比例与原点必须带出来
+    const meta = JSON.parse(fs.readFileSync(path.join(dir, 'output/cad/underlay.json'), 'utf8'));
+    assert.equal(meta.file, 'output/cad/underlay.png');
+    assert.equal(meta.mmPerPx, 0.127);
+    assert.deepEqual(meta.origin, [0, 0]);
   } finally {
     if (before === undefined) delete process.env.SPACE_PYTHON; else process.env.SPACE_PYTHON = before;
   }

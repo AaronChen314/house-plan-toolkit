@@ -57,7 +57,7 @@ export const commands = [
         // 给 AI/视觉模型的识别任务单：底图在哪、比例多少、原点在哪、要输出什么。
         // CLI 不做感知，只把「看清这张图所需的一切」准备好并校验回来的结果。
         const store = openStore(project);
-        const underlayRel = 'output/cad/underlay.json';
+        const underlayRel = args.take('--underlay') || 'output/cad/underlay.json';
         const meta = store.exists(underlayRel) ? store.readJson(underlayRel) : null;
         const modelRel = `data/datasets/${dataset}/model.json`;
         const model = store.exists(modelRel) ? store.readJson(modelRel) : null;

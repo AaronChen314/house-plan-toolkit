@@ -2,6 +2,13 @@
 
 ## 未发布
 
+### 变更
+
+- **CLI 不再做识别**：移除 `cad.vector` 能力与 `src/domain/cadvec.mjs`（规则识别：平行双线、实心填充、断口弧）。真实图纸测试证明规则适用面窄（结构图只认出 2 面墙、方案图直接拒绝），识别归 AI。
+- `cadvec`、`cadsplit`、`analyze`、`wallfit`、`wallaudit`、`doorcheck` 从 `space run` 清单移出；脚本文件保留在 `src/legacy/scripts/` 作参考，不再是产品路径。
+- `cad.raster` 现在同时写 `output/cad/underlay.json`（比例与原点），供 `space trace brief` 交给 AI。
+- 能力数 26 → 25。
+
 ### 新增
 
 - **AI 识别交接**：`space trace brief`（给 AI/视觉模型的任务单：底图路径、mmPerPx、原点、已有实体、items 形状与规则）、`space trace save --dry-run`（只校验不写盘）。文档把 AI 确立为识别主路径，`cad.vector` 降为「可选规则预填」，并在描述里写明适用面。

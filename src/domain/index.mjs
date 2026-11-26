@@ -12,4 +12,3 @@ export * from './sheet.mjs';
 export * from './sheet-projection.mjs';
 export * from './rendering.mjs';
 export * from './tracing.mjs';
-export * from './cadvec.mjs';

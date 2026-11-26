@@ -34,16 +34,6 @@
     "entry": "legacy/scripts/qa.mjs",
     "interface": "legacy; run with original documented arguments"
   },
-  "doorcheck": {
-    "runtime": "python",
-    "entry": "legacy/scripts/doorcheck.py",
-    "interface": "legacy; run with original documented arguments"
-  },
-  "wallaudit": {
-    "runtime": "python",
-    "entry": "legacy/scripts/wallaudit.py",
-    "interface": "legacy; run with original documented arguments"
-  },
   "align2": {
     "runtime": "python",
     "entry": "legacy/scripts/align2.py",
@@ -69,11 +59,6 @@
     "entry": "legacy/scripts/furnoverlay.py",
     "interface": "legacy; run with original documented arguments"
   },
-  "cadsplit": {
-    "runtime": "python",
-    "entry": "legacy/scripts/cadsplit.py",
-    "interface": "legacy; run with original documented arguments"
-  },
   "clicktest": {
     "runtime": "node",
     "entry": "legacy/scripts/clicktest.mjs",
@@ -97,16 +82,6 @@
   "axismap": {
     "runtime": "python",
     "entry": "legacy/scripts/axismap.py",
-    "interface": "legacy; run with original documented arguments"
-  },
-  "cadvec": {
-    "runtime": "python",
-    "entry": "legacy/scripts/cadvec.py",
-    "interface": "legacy; run with original documented arguments"
-  },
-  "wallfit": {
-    "runtime": "python",
-    "entry": "legacy/scripts/wallfit.py",
     "interface": "legacy; run with original documented arguments"
   },
   "check": {
@@ -142,11 +117,6 @@
   "walktest": {
     "runtime": "node",
     "entry": "legacy/scripts/walktest.mjs",
-    "interface": "legacy; run with original documented arguments"
-  },
-  "analyze": {
-    "runtime": "python",
-    "entry": "legacy/scripts/analyze.py",
     "interface": "legacy; run with original documented arguments"
   },
   "dxf_prepare": {

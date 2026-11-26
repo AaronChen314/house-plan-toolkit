@@ -149,27 +149,7 @@ $S trace review --project project.json --dataset d1        # 按来源统计，�
 
 **预期**：`--dry-run` 只报校验结果不写盘；写盘后 `trace review` 显示 `ai N`，`confidence < 0.8` 的墙被列出；studio 里 AI 墙虚线、低置信度红点。
 
-## 4.5 矢量图纸规则预填（可选）
-
-以下为几何规则预填（cadvec），只在画法规范的图上有效。
-
-
-
-```sh
-$S cap run cad.vector --project project.json --file source/drawings/plan.dxf --out output/cad
-```
-
-**预期**：`识别：墙 N · 门 N · 窗 N · 文字 N · 轴线 N`，产出 `source.json` / `model-draft.json` / `underlay.png`。
-如果 cadvec 认为「没有找到墙」（合成图常见），会报错并提示改用 `cad.raster` + 手描——这不是缺陷。
-
-```sh
-$S dataset build --project project.json --source output/cad/source.json \
-  --id d1 --confirm --model output/cad/model-draft.json
-```
-
-**预期**：模型里出现识别出的墙/门/窗；`trace review` 能看到 `cadvec` 来源；studio 里墙紫、门橙、窗青。
-
-## 4.6 PDF / 截图 → 底图 → 描图
+## 4.5 PDF / 截图 → 底图 → 描图
 
 ```sh
 # 图纸放进项目（存储层不允许项目外路径）
@@ -181,7 +161,7 @@ $S cap run cad.raster --project project.json --source source/drawings/20260101-p
 
 打开工作台 →「底图描图」→ 选 `output/cad/underlay.png` → `mm/像素` 填上一步输出的值（200dpi 即 0.127；1:100 出图的 PDF 若按纸面比例画，可用图纸比例换算）→ 点两下画一面墙 → 保存。
 
-## 4.7 底图描图（命令行）
+## 4.6 底图描图（命令行）
 
 以下为不开工作台时的等价路径。
 
@@ -207,27 +187,18 @@ $S trace list --project project.json --dataset d1
 
 **负向**：不带 `--actor` 应被拒（人工改动必须可追溯）。
 
-### 4.8 DWG 与 AI 提议（可选）
+### 4.7 DWG 与 AI 提议（可选）
 
-DWG 需要本机转换器（ODA 推荐）：
+DWG 需要本机转换器（ODA 推荐；LibreDWG 的输出在部分图上 ezdxf 读不了）：
 
 ```sh
 $S cap run cad.convert --project project.json --file source/drawings/plan.dwg --out output/cad/converted.dxf
-# 没有转换器时会报 E_EXEC_DEPENDENCY 并给出安装提示，属预期
-$S cap run cad.inspect --project project.json --dxf output/cad/converted.dxf --out output/cad
+# 没有转换器时报 E_EXEC_DEPENDENCY 并给安装提示，属预期
+$S cap run cad.raster --project project.json --source output/cad/converted.dxf --out output/cad
+$S trace brief --project project.json --dataset d1
 ```
 
-AI/脚本提议（模拟 agent 的输出）：
-
-```sh
-cat > ai.json <<'EOF'
-[{"kind":"wall","from":[6000,0],"to":[6000,4000],"thicknessMm":200,"provenance":"ai","confidence":0.62}]
-EOF
-$S trace save --project project.json --dataset d1 --file ai.json --actor agent
-$S trace review --project project.json --dataset d1
-```
-
-**预期**：`trace review` 显示 `manual N · ai M`，并把 `confidence < 0.8` 的墙列为「待核对」；工作台「底图描图」按 CAD 类别上色（墙紫/门橙/窗青），AI 用虚线、低置信度在起点画红点，可切「判为无效」逐面标记。
+DXF 也能直接出底图（不必先转 PDF），AI 看底图输出 `items` 后按 4.4 提交。
 
 ## 5. 渲染与交付
 

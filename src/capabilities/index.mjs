@@ -10,7 +10,6 @@ import {
 import {fail, isSpaceError} from '../contracts/errors.mjs';
 import {capabilities as sourceCapabilities} from './source.mjs';
 import {capabilities as convertCapabilities} from './convert.mjs';
-import {capabilities as vectorCapabilities} from './vector.mjs';
 import {capabilities as dataCapabilities} from './data.mjs';
 import {capabilities as designCapabilities} from './design.mjs';
 import {capabilities as programCapabilities} from './program.mjs';
@@ -26,7 +25,6 @@ export {relOf} from './context.mjs';
 export const capabilities = [
   ...sourceCapabilities,
   ...convertCapabilities,
-  ...vectorCapabilities,
   ...dataCapabilities,
   ...designCapabilities,
   ...programCapabilities,

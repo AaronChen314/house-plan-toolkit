@@ -11,18 +11,18 @@ export const capabilities = [
     id: 'cad.raster',
     version: '1.0.0',
     stage: 'source',
-    title: 'PDF 转底图',
-    description: '把矢量 PDF 或扫描件栅格化成 PNG 底图，供 studio 描图使用；只渲染不识别。',
+    title: '出底图（PDF / 图片 / DXF）',
+    description: '把 PDF、图片或 DXF 栅格化成 PNG 底图并给出比例与原点，供 AI 识别（trace brief）或人工描图；只渲染不识别。',
     params: [
-      {key: 'source', label: 'PDF / 图片', type: 'path', required: true, accept: '.pdf,.png,.jpg,.jpeg'},
+      {key: 'source', label: 'PDF / 图片 / DXF', type: 'path', required: true, accept: '.pdf,.png,.jpg,.jpeg,.dxf'},
       {key: 'out', label: '输出目录', type: 'text', default: 'output/cad'},
-      {key: 'dpi', label: 'DPI', type: 'number', default: 200},
+      {key: 'dpi', label: 'DPI（PDF/图片用）', type: 'number', default: 200},
       {key: 'page', label: '页码（从 0 开始）', type: 'number', default: 0}
     ],
     inputs: {source: 'path:pdf'},
     outputs: {underlay: 'artifact:image'},
     sideEffects: ['write:artifact'],
-    requires: ['python:fitz'],
+    requires: ['python:fitz', 'python:ezdxf'],
     idempotent: true,
     errors: ['E_EXEC_PARAM', 'E_EXEC_DEPENDENCY', 'E_EXEC_PROCESS', 'E_STORE_PATH', 'E_STORE_IO'],
     async run(ctx, {source, out = 'output/cad', dpi = 200, page = 0} = {}) {
@@ -39,9 +39,12 @@ export const capabilities = [
         if (info.error) throw fail('E_EXEC_PARAM', info.error);
         if (!fs.existsSync(path.join(staging, 'underlay.png'))) throw fail('E_EXEC_PROCESS', '没有产出 underlay.png');
         const written = ctx.store.writeArtifact(relOf(ctx.dir, path.join(outDir, 'underlay.png')), fs.readFileSync(path.join(staging, 'underlay.png')), {kind: 'image'});
+        // 底图元数据：给 AI 任务单（trace brief）用；原点默认 0,0，可在 studio 调整。
+        const metaRel = relOf(ctx.dir, path.join(outDir, 'underlay.json'));
+        ctx.store.writeArtifact(metaRel, {file: written.path, mmPerPx: info.mmPerPx, origin: info.origin ?? [0, 0], rotationDeg: 0}, {kind: 'json'});
         return {
           summary: `底图已生成：${written.path}（${info.width}×${info.height}，${info.dpi}dpi，1 像素 = ${info.mmPerPx} mm）`,
-          outputs: [{path: written.path, kind: 'image'}],
+          outputs: [{path: written.path, kind: 'image'}, {path: metaRel, kind: 'json'}],
           data: {file: written.path, width: info.width, height: info.height, dpi: info.dpi, mmPerPx: info.mmPerPx, page: info.page, pages: info.pages}
         };
       } finally {
