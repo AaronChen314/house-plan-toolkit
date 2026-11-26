@@ -11,6 +11,8 @@ export const SCHEMA = 'cad-components/v1';
 // kind 必须出现在同一文件的 kinds 里。group 只是显示分组（structural / auxiliary），
 // 不参与判定。
 const PROVENANCE = ['manual', 'ai', 'rule', 'import'];
+// 几何用法提示：只说明「这类构件怎么用几何」，不参与判定，也不枚举构件类型。
+export const GEOMETRY = ['ring', 'open', 'span'];
 
 export function componentsDoc({sourceSha256, kinds = {}, assignments = {}} = {}) {
   return {schema: SCHEMA, source: {sha256: sourceSha256 || null}, kinds, assignments};
@@ -41,6 +43,9 @@ export function validateComponents(doc, {entityIds} = {}) {
     if (k?.color && !/^#[0-9a-f]{6}$/i.test(k.color)) problems.push(`kinds.${key}: color 必须是 #rrggbb`);
     if (k?.group && !['structural', 'auxiliary'].includes(k.group)) {
       problems.push(`kinds.${key}: group 只能是 structural / auxiliary`);
+    }
+    if (k?.geometry && !GEOMETRY.includes(k.geometry)) {
+      problems.push(`kinds.${key}: geometry 只能是 ${GEOMETRY.join(' / ')}`);
     }
   }
   const ids = entityIds ? new Set(entityIds) : null;

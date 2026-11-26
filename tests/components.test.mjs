@@ -24,6 +24,17 @@ test('校验：类别未声明、缺 label、颜色格式、id 不存在都要�
   assert.ok(problems.some(p => p.includes('confidence')));
 });
 
+test('geometry 是几何用法提示：只认 ring / open / span，写错要报', () => {
+  const doc = componentsDoc({kinds: {
+    wall: {label: '墙', geometry: 'open'},
+    pier: {label: '柱', geometry: 'ring'},
+    odd: {label: '怪', geometry: 'closed'}
+  }});
+  const problems = validateComponents(doc);
+  assert.ok(problems.some(p => p.includes('kinds.odd') && p.includes('geometry')), '未知 geometry 值要报');
+  assert.ok(!problems.some(p => p.includes('kinds.wall')), '合法值不该报');
+});
+
 test('旧标注（kind → sourceIds）转成数据定义的 kinds + 标注', () => {
   const legacy = {
     wall: {label: '实体墙', color: '#65409a', basis: '双线加粗', sourceIds: ['A1', 'A2', 'MISSING']},

@@ -67,6 +67,79 @@ CAD 颜色**没有国标语义**：GB/T 50001 约束线宽与线型，不约束�
 各组图纸的约定不同（有的院把门画黄、有的画绿），所以**不要把这些表抄进代码**：
 换一个院就换一份 `components.json`。置信度与依据写进条目的 `basis` / `confidence`，让人能复核。
 
+## 构件类别参考（起步清单，不是白名单）
+
+项目自己的 `data/cad/components.json` 才是权威；下表的键名只是**常见叫法**，便于不同项目之间对得上号。
+换一家设计院、换一类图纸，随时可以 `space components kinds --add <键> --label <中文> --color '#rrggbb'`。
+
+`geometry` 是给人和 AI 看的几何用法提示，不参与判定：
+
+| 值 | 含义 | 典型构件 |
+|---|---|---|
+| `ring` | 应围成闭合轮廓（能算面积） | 柱、洞口、电梯、岛台 |
+| `open` | 线状：中线或轮廓线，本来就不闭合 | 墙、梁、栏杆、轴线 |
+| `span` | 跨度：两端落在别的构件上 | 门、窗、幕墙分格 |
+
+| 键 | 中文名 | 常见画法 / 判定依据 | geometry |
+|---|---|---|---|
+| `wall` | 墙体（承重待核） | 双线墙带，或 0 层墙带的双边 + 洞口收边 | open |
+| `bearing` | 承重墙 | 实心涂黑 / 结构图；必须结构图或图例确认 | open |
+| `partition` | 非承重墙 | 灰填充、轻质隔墙双线 | open |
+| `pier` | 柱／墙垛 | 成对封闭轮廓，常带填充 | ring |
+| `beam` | 梁 | `Y-梁`、梁位标注、双虚线；常是一根线 | open |
+| `slab` | 楼板 | 板边界细线、楼板图层 | open |
+| `stair` | 楼梯 | 踏步阵列 + 上下行箭头 | open |
+| `opening` | 洞口 | 贯穿平开扇与固定段的边框 | ring |
+| `shaft` | 管井／风道／烟道 | 小房间围合 + 填充或交叉线 | ring |
+| `parapet` | 女儿墙／栏板 | 屋面外圈矮墙 | open |
+| `door` | 平开门 | 门扇线 + 90°/60°/45° 开启弧 | span |
+| `slideDoor` | 推拉门 | 相邻两段错位扇框 | span |
+| `foldingDoor` | 折叠门 | 多段折线扇 | span |
+| `window` | 窗 | 洞口内 3–4 根平行线 + 端部收边 | span |
+| `bayWindow` | 飘窗 | 凸出外墙的一圈平行线 | span |
+| `slideWindow` | 推拉窗 | 两段错位扇框、各占一半 | span |
+| `curtainWall` | 幕墙 | 分格网 + 竖梃 | span |
+| `railing` | 栏杆 | 立杆阵列或细密平行线 | open |
+| `canopy` | 雨棚 | 室外挑出轮廓 | ring |
+| `elevator` | 电梯 | 井道 + 轿厢 + 对重 | ring |
+| `escalator` | 自动扶梯 | 斜向踏步带 | open |
+| `equipment` | 设备（空调外机、热水器） | 矩形 + 型号文字 | ring |
+| `sanitary` | 洁具 | 马桶、洗手盆轮廓 | ring |
+| `kitchen` | 厨房设备 | 灶台、水槽轮廓 | ring |
+| `cabinet` | 固定柜（定制） | 柜体轮廓 + 内部分隔 | ring |
+| `counter` | 台面 | 台面轮廓（岛台、吧台） | ring |
+| `axis` | 轴线 | 点划线 + 圆圈编号 | open |
+| `grid` | 轴网 | 轴线与编号的整体 | open |
+| `dimension` | 尺寸 | 尺寸线 + 斜线刻度 + 数字 | open |
+| `annotation` | 文字标注 | 文字、引线、标高符号 | open |
+| `hatch` | 填充 | 斜线、网格、实心 | open |
+| `furniture` | 活动家具 | 家具块，可搬动，不算构件 | open |
+| `north` | 指北针 | 圆 + 箭头 | open |
+| `title` | 图框／标题 | 图框、会签栏、图名 | open |
+| `revision` | 修改云线 | 云线 + 修改编号 | open |
+| `other` | 未定性 | 暂时判断不了的，宁可放这里也不要硬猜 | open |
+
+复制下面的骨架开始，删掉用不到的类别：
+
+```json
+{
+  "schema": "cad-components/v1",
+  "source": {"sha256": "<space components import 会自己填>"},
+  "kinds": {
+    "wall":   {"label": "墙体（承重待核）", "color": "#65409a", "geometry": "open",  "group": "structural", "basis": "0层墙带双边与洞口收边"},
+    "pier":   {"label": "柱／墙垛",        "color": "#793131", "geometry": "ring",  "group": "structural", "basis": "成对封闭轮廓与填充"},
+    "beam":   {"label": "梁",              "color": "#be5800", "geometry": "open",  "group": "structural", "basis": "梁图层或梁位标注"},
+    "window": {"label": "窗带",            "color": "#007891", "geometry": "span",  "group": "structural", "basis": "洞口内 3–4 根平行线"},
+    "door":   {"label": "平开门",          "color": "#bf1670", "geometry": "span",  "group": "structural", "basis": "门扇线 + 开启弧"},
+    "annotation": {"label": "文字与标注",  "color": "#647177", "geometry": "open",  "group": "auxiliary"},
+    "other":  {"label": "其他／待识别",    "color": "#88857a", "geometry": "open",  "group": "auxiliary"}
+  },
+  "assignments": {
+    "<图元 id>": {"kind": "wall", "provenance": "ai", "confidence": 0.7, "basis": "双线且两端接墙"}
+  }
+}
+```
+
 ## 图例 → 识别规则
 
 | 画法（国标 / 惯例） | 含义 | cadvec 的处理 |
@@ -136,7 +209,10 @@ CAD 颜色**没有国标语义**：GB/T 50001 约束线宽与线型，不约束�
 
 图上有、表里没有、图例也没有的符号：**列出来问用户**，不要静默跳过。
 
-## cadvec 的流程（出问题时知道看哪）
+## cadvec 的流程（已归档，仅作排错参考）
+
+> `cadvec` 已从产品路径移除，脚本在 `$TOOLKIT/src/legacy/scripts/`。下面是它当年的做法，读图时可以参考，但不再是 `space` 的流程。
+
 
 1. 读图元：填充多边形（同一路径里的多个圈按奇偶规则，带洞的字框不会变实心）、描边折线、圆弧（PDF 里是折线 / 贝塞尔，按“到圆心等距”拟合）、文字、DXF 标注 / 图块。
 2. 实心填充做“坐标压缩”，按格子拆成水平 / 竖直墙段，横截面变化处断开（墙垛、L 形）——**这一步没有像素误差**。

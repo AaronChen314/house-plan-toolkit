@@ -116,19 +116,26 @@ export const commands = [
         const doc = store.readJson(TARGET);
         const add = args.take('--add');
         if (add) {
+          // args.take 只能取一次：先取值再组装，别在断言里重复消费。
+          const label = args.take('--label');
+          const color = args.take('--color');
+          const basis = args.take('--basis');
+          const group = args.take('--group');
+          const geometry = args.take('--geometry');
           doc.kinds = doc.kinds || {};
           doc.kinds[add] = {
-            label: args.take('--label') || add,
-            ...(args.take('--color') ? {color: args.take('--color')} : {}),
-            ...(args.take('--basis') ? {basis: args.take('--basis')} : {}),
-            ...(args.take('--group') ? {group: args.take('--group')} : {})
+            label: label || add,
+            ...(color ? {color} : {}),
+            ...(basis ? {basis} : {}),
+            ...(group ? {group} : {}),
+            ...(geometry ? {geometry} : {})
           };
           const problems = validateComponents(doc);
           if (problems.length) throw new Error(problems[0]);
           writeComponents(store, doc, `新增构件类别 ${add}`);
         }
         for (const [k, v] of Object.entries(doc.kinds || {})) {
-          print(`  ${k.padEnd(12)} ${v.label}${v.color ? ` ${v.color}` : ''}${v.basis ? ` · ${v.basis}` : ''}`);
+          print(`  ${k.padEnd(12)} ${v.label}${v.color ? ` ${v.color}` : ''}${v.geometry ? ` [${v.geometry}]` : ''}${v.basis ? ` · ${v.basis}` : ''}`);
         }
         return;
       }
