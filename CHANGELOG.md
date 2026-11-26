@@ -2,53 +2,43 @@
 
 ## 0.8.0-rc.1 — 2026-11-26
 
-识别交给 AI、CLI 只做格式与契约；新增底图/转换/描图/颜色约定/插件/全局索引。
-
-### 修复
-
-- **块内图元被丢掉**：上一版为避免嵌套块爆炸默认不展开块，结果一张户型图里 1317 个
-  带语义图层的图元（`P-固定家具` 911、`P平-DOOR 门扇` 342）全部消失，只剩下图层 0 的线条。
-  改为**默认展开顶层块**（深度 1，嵌套块只记引用，总量 ≤2 万），`--no-blocks` 可关闭；
-  同一份图 1845 图元 / 956KB / 2.5 秒，`truncated=false`。
-- `read.py`（`cad.inspect`）同样的嵌套块爆炸：一份 425 图元的真实结构图展开成 20 万图元、118MB JSON。
-  改为默认**不展开块**（`INSERT` 只记名字与插入点，`--blocks` 显式展开）、深度 ≤2、同链不重复、总量 ≤5 万；
-  顶层非块实体优先索引。同一份图从「挂死/118MB」降到 **2.4 秒 / 178KB / 425 图元**。
-- 解析缓存键里的解析器版本升到 2，旧的大体积缓存自动失效。
+识别交给 AI，CLI 只做格式、契约与存盘；构件类别与颜色改为项目数据 + 技能知识。
 
 ### 变更
 
-- **CLI 不再做识别**：移除 `cad.vector` 能力与 `src/domain/cadvec.mjs`（规则识别：平行双线、实心填充、断口弧）。真实图纸测试证明规则适用面窄（结构图只认出 2 面墙、方案图直接拒绝），识别归 AI。
-- `cadvec`、`cadsplit`、`analyze`、`wallfit`、`wallaudit`、`doorcheck` 从 `space run` 清单移出；脚本文件保留在 `src/legacy/scripts/` 作参考，不再是产品路径。
-- `cad.raster` 现在同时写 `output/cad/underlay.json`（比例与原点），供 `space trace brief` 交给 AI。
-- 能力数 26 → 25。
+- **CLI 不再做识别**：移除 `cad.vector` 能力与 `src/domain/cadvec.mjs`（平行双线、实心填充、断口弧）。
+  真实图纸证明规则适用面窄（结构图只认出 2 面墙、方案图直接拒绝），识别归 AI，人工兜底。
+  `cadvec`、`cadsplit`、`analyze`、`wallfit`、`wallaudit`、`doorcheck` 从 `space run` 清单移出，
+  脚本留在 `src/legacy/scripts/` 作参考。能力数 26 → 25。
+- **构件类别与颜色不再是脚本里的规则表**：删掉 `src/contracts/cad-colors.mjs`（ACI 表、图层名正则、
+  `classifyEntity` 置信度分层全部移除）。类别、颜色、判定依据写在项目的 `data/cad/components.json`
+  （`cad-components/v1` 的 `kinds`）里，由人/AI 按 `docs/cad-conventions.md` 填写；代码只校验
+  「kind 在 kinds 里、id 在图元索引里」。studio 没有标注就显示「未标注」，不从图层名猜构件。
 
 ### 新增
 
-- **AI 识别交接**：`space trace brief`（给 AI/视觉模型的任务单：底图路径、mmPerPx、原点、已有实体、items 形状与规则）、`space trace save --dry-run`（只校验不写盘）。文档把 AI 确立为识别主路径，`cad.vector` 降为「可选规则预填」，并在描述里写明适用面。
-- **CAD 颜色约定表** `src/contracts/cad-colors.mjs`：10 个类别（墙/柱/门/窗/轴线/尺寸/文字/家具/填充/其他）的 ACI 常见色、studio 配色与判断依据；`classifyEntity()` 给出「图层名 0.85 > 颜色唯一 0.5 > 颜色多义 0.25 不下结论」的置信度分层；`overrideCategories()` 支持按院/按项目只覆盖差异项。
-- 识别实体新增 `category` 与 `color`；`cad-source` 与 `space-model` 草稿都带上，studio 线稿/描图面板与图例直接 import 同一张表，配色与 CAD 惯例一致。来源不抢颜色：实线=manual、虚线=ai、点线=cadvec，低置信度在起点画红点。
-- `docs/cad-conventions.md` 增加「颜色约定」一节（已随 skills 重新生成），明确「颜色不是国标语义」与失效场景。
-- **矢量图纸识别 `cad.vector`**：`cadvec.py` 的 `cad.json` → `cad-source/v1`（WALL/DOOR/WINDOW/TEXT/AXIS，每个实体带 `provenance: cadvec` 与 `confidence`）+ `space-model` 草稿（实心墙自动标承重）。`space dataset build --model` 可直接把识别草稿接入数据集，后续施工图/彩平链路不变。
-- 工作台「底图描图」现在把墙、门、窗都画出来（墙紫 / 门橙 / 窗青 / AI 橙黄 / 低置信度虚线红），任何实体都能切「判为无效」标记。
-- **PDF/图片转底图**：能力 `cad.raster`（`src/cad/raster.py`，PyMuPDF），输出 `output/cad/underlay.png` 并返回 `mmPerPx`；只渲染不识别，源文件必须在项目内。至此「PDF/截图 → 底图 → studio 描图 → 数据」可用。
-- **DWG 转 DXF**：能力 `cad.convert`，检测 ODA File Converter（推荐）与 LibreDWG `dwg2dxf`（备选）；转换在 `.space/tmp/` 内进行、`cwd` 隔离，避免工具在项目根按默认名落盘。实测 LibreDWG 的 DXF 输出 ezdxf 读不了（r2000–r2018 全部失败），摘要里会警告。
-- **AI 提议与置信度**：描图项支持 `provenance`（新增 `ai`）与 `confidence`（0–1）；`LOW_CONFIDENCE = 0.8` 以下的墙在 studio 画虚线红，`space trace review` 按来源统计并列出待核对的墙；`space trace save --provenance ai` 用于批量提议。
-- studio「底图描图」面板会画出模型里已有的墙（manual 蓝 / ai 橙 / cadvec 紫），切「判为无效」后点墙即可标记。
-- `docs/roadmap.md` 新增「M6 候选：图纸识别与人工修正」，记录已落地与待做（cad.vector 映射、房间/门窗进模型、AI 采集流程）。
-
-- **底图描图**：`space-trace/v1` 契约（底图比例/原点、墙与判无效项）、`src/domain/tracing.mjs`（像素→毫米、中心线→墙体多边形、幂等合并）、能力 `annotation.trace`（`write:data`，必须带操作者）、CLI `space trace save|list`、工作台「底图描图」面板（选底图、调比例、点两下画墙、保存）。
-- 描图记录写进数据集 `traces[]`（操作者、时间、底图、数量），墙体带 `provenance: manual` 与 `tracedAt/tracedBy`。
-- `docs/manual-test.md` 增加「底图描图」回归步骤；`docs/storage.md` 增加对应契约说明。
+- **构件标注层** `cad-components/v1`：`kinds`（label/color/basis/group）+ `assignments`（id → kind、
+  provenance、confidence、basis）。CLI `space components import|list|kinds|set|clear`；
+  旧项目的 `{kind: {label, color, sourceIds[]}}` 能直接导入，认不出的 id 逐条报告。
+  工作台「构件核对」按 kinds 上色与过滤，点线看依据并可当场改判（写回权威数据）。
+- **AI 识别交接**：`space trace brief` 出任务单（底图路径、mmPerPx、原点、已有实体、items 形状），
+  `space trace save --dry-run` 只校验不写盘，`--provenance ai` 批量标记来源。
+- **工作台「数据预览」**：打开项目即显示模型里的墙/门/窗（只读），虚线=AI、点线=历史来源、红点=低置信度；
+  「构件核对」显示逐条构件类型。
+- **PDF / 图片 / DXF 转底图**：`cad.raster` 写 `output/cad/underlay.png` 与 `underlay.json`（mmPerPx、原点）。
+- **DWG 转 DXF**：`cad.convert`，优先 ODA File Converter，备选 LibreDWG `dwg2dxf`；转换在 `.space/tmp/` 内、`cwd` 隔离。
+- **插件与全局索引**：`space plugin list`、`space index global sync|list`。
 
 ### 修复
 
-- 存储层登记表按 mtime 检测外部更新：同进程里能力自己开一个 store、宿主也开一个时，`verify` 会对着旧内存值误报「变更」。`saveRegistry` 也不再经 `reg()` 重新加载（后者会丢掉刚写入的条目）。
-
-- `docs/manual-test.md`：按阶段的手工测试流程（准备 → 图纸 → 数据 → 设计 → 施工图 → 渲染交付 → 索引/存储/图 → 门面负向），每步带预期输出，末尾给出测试反馈必需字段。release.md 与 AGENTS.md 已链入。
-
-### 变更
-
-- `space dataset build` 成功后提示下一步：把 `project.json` 的 `model` 指向 `data/datasets/<id>/model.json`，否则 `space check` / `program check` 会报「Project has no verified model yet」。数据集不改项目指针（权威归文件），但调用方需要看见这一步。
+- **图元索引把图库当成平面图**：真实户型图里匿名块 `*U`（3416×1866mm 塞了 1317 个图元，还自我引用 28 层）
+  被整块展开，产生了「家具 913 / 门 342」的假数据。现在大块（>500 图元）只记引用、按块名判环；
+  同一份图从 1845 图元降到 557 条，`truncated=false`。
+- 解析器前几版在「全展开」与「不展开」之间摆动，都会丢东西：最终默认展开顶层块（深度 1、总量 ≤2 万），
+  `--no-blocks` 可关闭；解析缓存版本升到 3。
+- `read.py` 尾部 argparse 缩进错误让 `--blocks` 静默失效。
+- 底图线宽 0.3pt 在 4mm/像素下几乎不可见，改为 1.0pt。
+- 工作台底图优先取 `output/cad/underlay.*`，不再把三维效果图当底图；模型/底图元数据只在文件存在时才请求。
 
 ## 0.7.1 — 2026-11-25
 
