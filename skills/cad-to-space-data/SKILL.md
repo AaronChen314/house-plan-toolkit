@@ -29,7 +29,8 @@ description: 将 CAD 户型图转成可维护、可追溯的空间数据，核�
 ## 仓库资源（按需）
 
 - 构件类别与颜色约定：[cad-conventions.md](references/cad-conventions.md)。图例是线索，仍以当前图纸证据为准。
-- 构件怎么拆（每类怎么认、在哪断开、粒度怎么定、失败模式）：[cad-component-split.md](references/cad-component-split.md)。
+- 构件图鉴（有哪些构件、每个在图面上怎么画、和谁容易混）：[component-catalog.md](references/component-catalog.md)。结构/围护/门窗/竖向交通/设备井道/厨卫/固定家具/活动家具/室外/标注，十大类约 120 个构件。
+- 构件怎么拆（在哪断开、粒度怎么定、自检、失败模式）：[cad-component-split.md](references/cad-component-split.md)。
 - 复杂图块：[route-dxf-layout.md](references/route-dxf-layout.md)；多层：[route-building.md](references/route-building.md)。
 - 数据接口：[structure-format.md](references/structure-format.md) 与 [structure.schema.json](references/structure.schema.json)。二维线框不自动升级为已核实的空间实体。
 - 工具命令：`space --help`；`space cad inspect` 保留图元和来源，`space cad view` 生成对照页。空间实体接口见 [数据格式](references/structure-format.md)。

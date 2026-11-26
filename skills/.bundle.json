@@ -3,11 +3,12 @@
   "version": "0.8.0-rc.1",
   "skills": {
     "cad-to-space-data": {
-      "skillSha256": "2a3c882c7ef280e4ba18c0087234bd29d39e0e3aaa692315c4a2c38b78a6feb0",
+      "skillSha256": "7f9af16f26b34218cc20027c36474b72322cd72023992fa81bfafa72a1e482ca",
       "references": {
         "space-workflow-contract.md": "b33afdb29cab69f65b60fd35b25fd19ebe88db2d1edd98cf4a875d3504fdcd85",
-        "cad-conventions.md": "ca8381c26e52d9be8859c7d67bb7ef9d1e71ad6b9e62f5aec0edf95825366a98",
-        "cad-component-split.md": "bf0c3bd93f90a62c6dffb023dd2cdb0bd54cd0faf2b47af8775289565182fd73",
+        "cad-conventions.md": "457d0a29d338ab7257526eb6d742153aa66ca23cf81d81b69924073c83e22aa0",
+        "component-catalog.md": "7b5002d1fd77fc764f77428208d6878247d41802a056092c99db3dbaafc57d99",
+        "cad-component-split.md": "fb60b424a2d3b4552953888c68d39bb869bd208324924731cb01ff6f112ea29d",
         "route-dxf-layout.md": "cf48018252e5b30ace47b0e2d1e890d9267dafc3f73f284b704a5e97d7a77ff2",
         "route-building.md": "7fcf2aaae5acff410cfd5dbd408b1cf2d49b115a3e9107064d28a1ace34a752e",
         "structure-format.md": "c0468594dae04891fb44d2e8776b14b0aba6ecf81f7b1114c8dd2ad182688bb8",
