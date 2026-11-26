@@ -5,7 +5,7 @@ import path from 'node:path';
 import {sha256, writeFileAtomic} from '../store/atomic.mjs';
 
 // 改了 read.py 的输出行为就升 version：缓存键包含它，旧产物自动失效。
-export const PARSER = {id: 'cad.read', version: '2'};
+export const PARSER = {id: 'cad.read', version: '3'};
 
 export function cacheKey({sourceSha256, parser = PARSER, params = {}}) {
   if (!/^[0-9a-f]{64}$/.test(String(sourceSha256))) throw new Error('sourceSha256 格式不合法');

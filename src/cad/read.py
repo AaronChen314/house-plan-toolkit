@@ -4,12 +4,15 @@ import argparse,json,hashlib
 import ezdxf
 from ezdxf import path as dp,bbox
 
-def inspect(source,box=None):
+def inspect(source,box=None,expand=True):
  doc=ezdxf.readfile(source);rows=[];issues=[]
- # 嵌套块在装修图里很常见，递归展开会指数爆炸（实测 425 图元的图展成十几万次、吃满内存）。
- # 三重设限：深度、同一 INSERT 链不重复、总行数上限。
- MAX_DEPTH=2;MAX_ROWS=50000;truncated=[False];EXPAND=[False]
- def capped(identity,reason):
+ # 块必须展开：装修图把家具/门扇塞进块里，不展开就丢掉带语义图层的东西
+ # （实测一张户型图的 1317 个图元全在匿名块 *U 里）。
+ # 但嵌套块会爆炸，所以三重设限：深度、同一 INSERT 链不重复、总行数上限。
+ MAX_DEPTH=1;MAX_ROWS=20000;truncated=[False];EXPAND=[expand]
+ def capped(identity,reason,hard=True):
+  # 行数上限才算截断；嵌套块只记一条说明，不当作数据缺失。
+  if not hard: issues.append({'id':identity,'message':reason});return
   if not truncated[0]:issues.append({'id':identity,'message':reason})
   truncated[0]=True
  def visit(e,chain=(),layer='0',color=7,depth=0):
@@ -19,7 +22,7 @@ def inspect(source,box=None):
   if e.dxftype()=='INSERT':
    if not EXPAND[0]:
     row={'id':identity,'handle':handle,'blockPath':list(chain),'type':'INSERT','layer':e.dxf.layer,'effectiveLayer':effective_layer,'aci':aci,'resolvedAci':resolved,'linetype':e.dxf.get('linetype','BYLAYER'),'insert':[round(e.dxf.insert.x,3),round(-e.dxf.insert.y,3)],'block':e.dxf.name};rows.append(row);return
-   if depth>=MAX_DEPTH: capped(identity,'Nested block depth exceeded (max %d)'%MAX_DEPTH);return
+   if depth>=MAX_DEPTH: capped(identity,'Nested block kept as reference (depth limit %d)'%MAX_DEPTH,hard=False);return
    if handle in chain: capped(identity,'Cyclic block reference');return
    if len(rows)>=MAX_ROWS: capped(identity,'Entity limit reached (%d)'%MAX_ROWS);return
    # Pair originals with transformed entities when possible; keep block instance path.
@@ -44,9 +47,8 @@ def inspect(source,box=None):
  return {'schema':'cad-source/v1','truncated':truncated[0],'source':{'file':Path(source).name,'sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'insunits':doc.units},'coordinateSystem':{'x':'right','y':'down','units':'source drawing units','transform':'x=CAD.x; y=-CAD.y; block transforms resolved'},'cropCad':box,'entities':rows,'issues':issues}
 
 if __name__=='__main__':
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('source');p.add_argument('--out',required=True);p.add_argument('--box',nargs=4,type=float);p.add_argument('--blocks',action='store_true',help='展开块内图元（家具块很多，默认只索引顶层）');a=p.parse_args()
- if a.blocks: EXPAND[0]=True
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('source');p.add_argument('--out',required=True);p.add_argument('--box',nargs=4,type=float);p.add_argument('--no-blocks',action='store_true',help='只索引顶层，不展开块内图元（默认展开顶层块，嵌套块不递归）');a=p.parse_args()
  out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
- data=inspect(a.source,a.box)
+ data=inspect(a.source,a.box,expand=not a.no_blocks)
  (out/'source.json').write_text(json.dumps(data,ensure_ascii=False,indent=2))
  print(json.dumps({'entities':len(data['entities']),'issues':len(data['issues']),'truncated':data.get('truncated',False),'output':str(out/'source.json')}))
