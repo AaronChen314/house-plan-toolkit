@@ -312,7 +312,32 @@ space cap run <id> --project p [--<参数> 值 ...]
 
 关键前提：**颜色不是国标语义**，只是模板惯例；会被 ByLayer 图层 0、打印样式、单色出图、扫描件抹掉。所以颜色只给候选，图层名与几何特征优先。不同院配色不同时用 `overrideCategories()` 只覆盖差异项。
 
-### 矢量图纸 → 结构化数据
+### AI 识别怎么接（主路径）
+
+CLI **不做感知**：看懂图纸是模型的事，CLI 负责给任务单、校验结果、存盘、追溯。
+
+```sh
+space trace brief --project <project.json> --dataset d1        # 给 AI 的任务单
+#   → 底图绝对路径、mmPerPx、origin、已有实体计数、items 形状、提交命令与规则
+
+space trace save --project <project.json> --dataset d1 \
+  --file items.json --actor <操作者> --provenance ai --dry-run  # 只校验
+space trace save ... --provenance ai                           # 校验并写盘
+space trace review --project <project.json> --dataset d1        # 按来源统计 + 低置信度清单
+```
+
+- 模型在环外看图（本地或任意模型），输出 `items[]`：`{kind:'wall', from:[x,y], to:[x,y], thicknessMm, provenance:'ai', confidence}`；不确定就用 `kind:'invalid'` 否定已有实体。
+- 坐标是毫米：`model = origin + pixel × mmPerPx`（`trace brief` 里给全）。
+- `--dry-run` 只跑契约校验，不会写坏数据；写盘后每条记录留操作者、时间、底图与来源分布。
+- studio 里 AI 墙用虚线画、低置信度起点画红点，人工可判无效或补画。
+
+### 矢量图纸 → 结构化数据（可选预填）
+
+`cad.vector` 是基于**几何规则**的预填（平行双线配对、实心填充、断口弧），不是感知。规则对图上能到 mm 级，对画法不规范、墙在图层 0、描边墙的图会失效——真实项目里请把它当作「能预填就预填，不能就交给 AI 或人工」。
+
+> 实测（一个真实住宅项目的结构图与方案图）：结构图只认出 2 面墙（`typical_wall_t` 59mm），方案图直接拒绝（建议 cadsplit）；同批 DWG 转换正常。**结论：规则的适用面比想象窄，主路径应当是 AI。**
+
+
 
 `cad.vector`（`src/capabilities/vector.mjs` + `src/domain/cadvec.mjs`）调用 `cadvec.py` 读矢量 PDF/DXF 的**图元坐标**（不靠像素识图），按国标惯例分类，产出：
 

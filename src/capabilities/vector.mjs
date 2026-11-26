@@ -15,8 +15,8 @@ export const capabilities = [
     id: 'cad.vector',
     version: '1.0.0',
     stage: 'source',
-    title: '矢量 PDF / DXF 识别',
-    description: '读矢量图纸的图元坐标，按国标惯例识别墙、门窗、文字与轴线，输出 cad-source 与模型草稿（识别结果可人工修正）。',
+    title: '矢量图纸规则预填（可选）',
+    description: '按几何规则（平行双线、实心填充、断口弧）预填墙门窗，输出 cad-source 与模型草稿。只适用画法规范的图；识别的主路径是 AI（space trace brief）。',
     params: [
       {key: 'file', label: '图纸（PDF 或 DXF）', type: 'path', required: true, accept: '.pdf,.dxf'},
       {key: 'out', label: '输出目录', type: 'text', default: 'output/cad'},

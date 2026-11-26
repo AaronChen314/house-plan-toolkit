@@ -136,7 +136,24 @@ $S doc render --project project.json --scheme a --seq 1 --force
 # 预期：重出成功，doc check 回到「全部与输入一致」
 ```
 
-## 4.4 矢量图纸识别（结构化数据）
+## 4.4 AI 识别的交接（主路径）
+
+CLI 不做感知。让模型看图，CLI 负责校验与存盘：
+
+```sh
+$S trace brief --project project.json --dataset d1        # 任务单：底图路径 / mmPerPx / origin / items 形状
+$S trace save --project project.json --dataset d1 --file items.json --actor 你的名字 --provenance ai --dry-run
+$S trace save --project project.json --dataset d1 --file items.json --actor 你的名字 --provenance ai
+$S trace review --project project.json --dataset d1        # 按来源统计，列出低置信度
+```
+
+**预期**：`--dry-run` 只报校验结果不写盘；写盘后 `trace review` 显示 `ai N`，`confidence < 0.8` 的墙被列出；studio 里 AI 墙虚线、低置信度红点。
+
+## 4.5 矢量图纸规则预填（可选）
+
+以下为几何规则预填（cadvec），只在画法规范的图上有效。
+
+
 
 ```sh
 $S cap run cad.vector --project project.json --file source/drawings/plan.dxf --out output/cad
@@ -152,7 +169,7 @@ $S dataset build --project project.json --source output/cad/source.json \
 
 **预期**：模型里出现识别出的墙/门/窗；`trace review` 能看到 `cadvec` 来源；studio 里墙紫、门橙、窗青。
 
-## 4.5 PDF / 截图 → 底图 → 描图
+## 4.6 PDF / 截图 → 底图 → 描图
 
 ```sh
 # 图纸放进项目（存储层不允许项目外路径）
@@ -164,7 +181,7 @@ $S cap run cad.raster --project project.json --source source/drawings/20260101-p
 
 打开工作台 →「底图描图」→ 选 `output/cad/underlay.png` → `mm/像素` 填上一步输出的值（200dpi 即 0.127；1:100 出图的 PDF 若按纸面比例画，可用图纸比例换算）→ 点两下画一面墙 → 保存。
 
-## 4.6 底图描图（命令行）
+## 4.7 底图描图（命令行）
 
 以下为不开工作台时的等价路径。
 
@@ -190,7 +207,7 @@ $S trace list --project project.json --dataset d1
 
 **负向**：不带 `--actor` 应被拒（人工改动必须可追溯）。
 
-### 4.6 DWG 与 AI 提议（可选）
+### 4.8 DWG 与 AI 提议（可选）
 
 DWG 需要本机转换器（ODA 推荐）：
 

@@ -4,6 +4,7 @@
 
 ### 新增
 
+- **AI 识别交接**：`space trace brief`（给 AI/视觉模型的任务单：底图路径、mmPerPx、原点、已有实体、items 形状与规则）、`space trace save --dry-run`（只校验不写盘）。文档把 AI 确立为识别主路径，`cad.vector` 降为「可选规则预填」，并在描述里写明适用面。
 - **CAD 颜色约定表** `src/contracts/cad-colors.mjs`：10 个类别（墙/柱/门/窗/轴线/尺寸/文字/家具/填充/其他）的 ACI 常见色、studio 配色与判断依据；`classifyEntity()` 给出「图层名 0.85 > 颜色唯一 0.5 > 颜色多义 0.25 不下结论」的置信度分层；`overrideCategories()` 支持按院/按项目只覆盖差异项。
 - 识别实体新增 `category` 与 `color`；`cad-source` 与 `space-model` 草稿都带上，studio 线稿/描图面板与图例直接 import 同一张表，配色与 CAD 惯例一致。来源不抢颜色：实线=manual、虚线=ai、点线=cadvec，低置信度在起点画红点。
 - `docs/cad-conventions.md` 增加「颜色约定」一节（已随 skills 重新生成），明确「颜色不是国标语义」与失效场景。
