@@ -50,6 +50,7 @@ function App() {
   const [showIndex, setShowIndex] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
 
   useEffect(() => {
     getJson('/api/capabilities')
@@ -102,9 +103,10 @@ function App() {
         <h1>户型工作台</h1>
         <input type="text" value={projectPath} onInput={e => setProjectPath(e.target.value)} placeholder="项目配置文件路径，例如 my-house/project.json" />
         <button class="primary" onClick={() => openProject(projectPath)}>打开项目</button>
-        {project && <button data-testid="index-toggle" onClick={() => setShowIndex(v => !v)} class={showIndex ? 'active' : ''}>{showIndex ? '收起索引' : '几何索引'}</button>}
-        {project && <button data-testid="confirm-toggle" onClick={() => setShowConfirm(v => !v)} class={showConfirm ? 'active' : ''}>{showConfirm ? '收起确认' : '确认清单'}</button>}
-        {project && <button data-testid="trace-toggle" onClick={() => setShowTrace(v => !v)} class={showTrace ? 'active' : ''}>{showTrace ? '收起描图' : '底图描图'}</button>}
+        {project && <button data-testid="preview-toggle" onClick={() => setShowPreview(v => !v)} class={showPreview ? 'active' : ''}>{showPreview ? '收起预览' : '数据预览'}</button>}
+        {project && <button data-testid="index-toggle" onClick={() => { setShowIndex(v => !v); setShowPreview(false); }} class={showIndex ? 'active' : ''}>{showIndex ? '收起索引' : '几何索引'}</button>}
+        {project && <button data-testid="confirm-toggle" onClick={() => { setShowConfirm(v => !v); setShowPreview(false); }} class={showConfirm ? 'active' : ''}>{showConfirm ? '收起确认' : '确认清单'}</button>}
+        {project && <button data-testid="trace-toggle" onClick={() => { setShowTrace(v => !v); setShowPreview(false); }} class={showTrace ? 'active' : ''}>{showTrace ? '收起描图' : '底图描图'}</button>}
         {project && <span class="meta">{project.project.id} · v{project.project.schema} · {project.files.length} 个文件</span>}
       </header>
       <div class="body">
@@ -132,6 +134,7 @@ function App() {
             )}
             {project && showIndex && <IndexPanel projectPath={projectPath} />}
             {project && showConfirm && <ConfirmPanel projectPath={projectPath} files={project.files || []} />}
+            {project && showPreview && <TracePanel projectPath={projectPath} files={project.files || []} preview onEdit={() => { setShowPreview(false); setShowTrace(true); }} />}
             {project && showTrace && <TracePanel projectPath={projectPath} files={project.files || []} />}
             {!project && <div class="panel"><h3>打开一个项目</h3><p class="desc">填写 project.json 的路径（相对当前工作目录或绝对路径）。工作台只读取项目文件，生成物写入项目 output/。</p></div>}
             {plannedCap && (
@@ -182,7 +185,7 @@ function App() {
 
 // 底图描图：把 PDF/截图渲染出的底图放进同一套毫米坐标里，两点画一面墙，
 // 保存后由 annotation.trace 合并进数据集模型（带操作者与时间）。
-function TracePanel({projectPath, files}) {
+function TracePanel({projectPath, files, preview = false, onEdit}) {
   const datasets = (files || []).map(f => /^data\/datasets\/([^/]+)\/dataset\.json$/.exec(f)).filter(Boolean).map(m => m[1]);
   const images = (files || []).filter(f => /\.(png|jpe?g|webp)$/i.test(f));
   const [dataset, setDataset] = useState(datasets[0] || '');
@@ -321,25 +324,30 @@ function TracePanel({projectPath, files}) {
             {images.length ? images.map(f => <option key={f} value={f}>{f}</option>) : <option value="">（没有图片）</option>}
           </select>
         </label>
-        <label class="meta">mm/像素
-          <input type="text" size="6" value={mmPerPx} onInput={e => setMmPerPx(e.target.value)} />
-        </label>
-        <label class="meta">原点 x,y
-          <input type="text" size="10" value={origin} onInput={e => setOrigin(e.target.value)} />
-        </label>
-        <label class="meta">墙厚 mm
-          <input type="text" size="5" value={thickness} onInput={e => setThickness(e.target.value)} />
-        </label>
-        <label class="meta">操作者
-          <input type="text" size="8" value={actor} onInput={e => setActor(e.target.value)} placeholder="你的名字" />
-        </label>
-        <label class="meta">模式
-          <select value={mode} onChange={e => setMode(e.target.value)}>
-            <option value="draw">画墙</option>
-            <option value="invalid">判为无效</option>
-          </select>
-        </label>
-        <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 项`}</button>
+        {!preview && (
+          <>
+            <label class="meta">mm/像素
+              <input type="text" size="6" value={mmPerPx} onInput={e => setMmPerPx(e.target.value)} />
+            </label>
+            <label class="meta">原点 x,y
+              <input type="text" size="10" value={origin} onInput={e => setOrigin(e.target.value)} />
+            </label>
+            <label class="meta">墙厚 mm
+              <input type="text" size="5" value={thickness} onInput={e => setThickness(e.target.value)} />
+            </label>
+            <label class="meta">操作者
+              <input type="text" size="8" value={actor} onInput={e => setActor(e.target.value)} placeholder="你的名字" />
+            </label>
+            <label class="meta">模式
+              <select value={mode} onChange={e => setMode(e.target.value)}>
+                <option value="draw">画墙</option>
+                <option value="invalid">判为无效</option>
+              </select>
+            </label>
+            <button class="primary" disabled={busy} onClick={save}>{busy ? '保存中…' : `保存 ${items.length} 项`}</button>
+          </>
+        )}
+        {preview && onEdit && <button class="primary" onClick={onEdit}>去描图修正</button>}
       </div>
       <div class="toolbar">
         <span class="meta">已有实体 {walls.length} 个 ·</span>
@@ -347,14 +355,15 @@ function TracePanel({projectPath, files}) {
           <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
         ))}
         <span class="meta">实线=manual · 虚线=ai · 点线=其他来源 · 红点=低置信度</span>
-        <span class="meta">切到「判为无效」后点实体即可标记</span>
+        {!preview && <span class="meta">切到「判为无效」后点实体即可标记</span>}
       </div>
-      {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：把 PDF 渲染的 PNG 或截图放进项目（例如 output/cad/underlay.png），再在“打开项目”后刷新。</div>}
+      {!image && <div class="banner warn" data-testid="trace-empty">没有可用底图：先运行 <code>space cap run cad.raster</code>（PDF / 图片 / DXF）生成底图。</div>}
+      {preview && <div class="meta">只读预览：墙/门/窗按 CAD 类别上色，虚线=AI，点线=历史来源，红点=置信度低于 0.8。要修改点「去描图修正」。</div>}
       {message && <div class="banner ok">{message}</div>}
       {error && <div class="banner err">{error}</div>}
       <div class="stage">
         {image && (
-          <svg data-testid="trace-canvas" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onClick={click} style="cursor:crosshair">
+          <svg data-testid="trace-canvas" viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onClick={preview ? undefined : click} style={preview ? undefined : 'cursor:crosshair'}>
             <image href={fileUrl(projectPath, image)} x={vb.x} y={vb.y} width={vb.w} height={vb.h} opacity="0.85" />
             {walls.map((w, i) => {
               const outer = w.rect || w.polygon?.outer || [];
@@ -384,7 +393,7 @@ function TracePanel({projectPath, files}) {
           </svg>
         )}
       </div>
-      <p class="desc">点两下画一面墙；比例或原点不准时改上面的数字，网格会跟着变。保存后墙会带 <code>provenance: manual</code> 与操作者写进数据集模型。</p>
+      {!preview && <p class="desc">点两下画一面墙；比例或原点不准时改上面的数字，网格会跟着变。保存后墙会带 <code>provenance: manual</code> 与操作者写进数据集模型。</p>}
     </div>
   );
 }
