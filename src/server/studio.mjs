@@ -127,6 +127,9 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
           const ids = store.readJson(sourceRel).entities.map(e => e.id);
           if (!ids.includes(body.id)) throw new Error(`图元索引里没有 ${body.id}`);
           const doc = store.exists(target) ? store.readJson(target) : componentsDoc({sourceSha256: sourceSha});
+          if (doc.source?.sha256 && doc.source.sha256 !== sourceSha) {
+            throw new Error('构件标注对应的图元索引已变（源文件或解析版本变了）：先重新导入，避免张冠李戴');
+          }
           doc.assignments = doc.assignments || {};
           if (!doc.kinds?.[body.kind]) throw new Error(`构件类别 ${body.kind} 不在本项目的 kinds 里`);
           doc.assignments[body.id] = {kind: body.kind, provenance: body.provenance || 'manual', basis: body.basis || doc.kinds[body.kind].basis || '人工改判'};

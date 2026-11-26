@@ -149,6 +149,13 @@ export const commands = [
       const doc = store.readJson(TARGET);
       const counts = summarize(doc);
       const total = Object.keys(doc.assignments || {}).length;
+      // 标注是「针对某一份图元索引」的：哈希变了就要重导，否则 id 可能对到别的线上。
+      if (store.exists(sourceRel)) {
+        const now = crypto.createHash('sha256').update(store.readBuffer(sourceRel)).digest('hex');
+        if (doc.source?.sha256 && doc.source.sha256 !== now) {
+          print('  ⚠ 这份标注不是针对当前图元索引（索引已重新生成）：请重新 import，或先核对 id 是否还对应同一条线');
+        }
+      }
       if (json) { print(JSON.stringify({counts, total, source: doc.source}, null, 2)); return; }
       print(`构件标注 ${total} 条（${TARGET}）`);
       for (const k of kindOrder(doc)) if (counts[k]) print(`  ${doc.kinds?.[k]?.group === 'auxiliary' ? '辅助' : '构件'} · ${kindLabel(doc, k)}：${counts[k]}`);
