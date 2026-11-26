@@ -221,7 +221,8 @@ const WRITE_SCAN = /(?:writeFileSync|appendFileSync|createWriteStream|appendFile
 const WRITE_EXEMPT = {
   'src/store/atomic.mjs': '存储层的原子写入原语本身',
   'src/checks/white-model.mjs': '浏览器冒烟脚本，写开发用核对产物',
-  'src/checks/dimensions.mjs': '浏览器冒烟脚本，写开发用核对产物'
+  'src/checks/dimensions.mjs': '浏览器冒烟脚本，写开发用核对产物',
+  'bin/pack.mjs': '打包脚本，写构建元数据 src/build-info.json，不碰项目数据'
 };
 
 function sourceFiles(dir, base = ROOT, out = []) {
@@ -244,7 +245,7 @@ test('静态扫描：除存储层与开发脚本外没有绕过存储的写入',
     if (WRITE_SCAN.test(text)) offenders.push(rel);
   }
   assert.deepEqual(offenders, [], '这些文件绕过存储层直接写文件');
-  assert.deepEqual(Object.keys(WRITE_EXEMPT).sort(), ['src/checks/dimensions.mjs', 'src/checks/white-model.mjs', 'src/store/atomic.mjs']);
+  assert.deepEqual(Object.keys(WRITE_EXEMPT).sort(), ['bin/pack.mjs', 'src/checks/dimensions.mjs', 'src/checks/white-model.mjs', 'src/store/atomic.mjs']);
 });
 
 test('领域层是纯函数：不引入 IO 与进程', () => {

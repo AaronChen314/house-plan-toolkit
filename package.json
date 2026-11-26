@@ -32,7 +32,7 @@
     "bench:index": "node src/indexer/bench.mjs",
     "verify": "npm test && node bin/space.mjs capabilities --check && node bin/space.mjs lint --project examples/two-level/project.json && npm run skills:check && npm run verify:public",
     "verify:browser": "node bin/space.mjs build --project examples/two-level/project.json && node src/checks/white-model.mjs examples/two-level/output/白模.html && node src/checks/studio.mjs examples/two-level/project.json",
-    "pack:test": "node scripts/pack.mjs"
+    "pack:test": "node bin/pack.mjs"
   },
   "dependencies": {
     "esbuild": "0.24.0",
