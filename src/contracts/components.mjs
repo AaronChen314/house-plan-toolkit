@@ -14,8 +14,8 @@ const PROVENANCE = ['manual', 'ai', 'rule', 'import'];
 // 几何用法提示：只说明「这类构件怎么用几何」，不参与判定，也不枚举构件类型。
 export const GEOMETRY = ['ring', 'open', 'span'];
 
-export function componentsDoc({sourceSha256, kinds = {}, assignments = {}} = {}) {
-  return {schema: SCHEMA, source: {sha256: sourceSha256 || null}, kinds, assignments};
+export function componentsDoc({sourceSha256, kinds = {}, assignments = {}, instances = {}} = {}) {
+  return {schema: SCHEMA, source: {sha256: sourceSha256 || null}, kinds, assignments, ...(Object.keys(instances).length ? {instances} : {})};
 }
 
 export function kindOf(doc, kind) {
@@ -49,6 +49,26 @@ export function validateComponents(doc, {entityIds} = {}) {
     }
   }
   const ids = entityIds ? new Set(entityIds) : null;
+  // 实例层是可选的：一旦写了，就要能追到图元、且一个图元只属于一个实例。
+  const owner = new Map();
+  const instanceIds = new Set(Object.keys(doc?.instances || {}));
+  for (const [iid, inst] of Object.entries(doc?.instances || {})) {
+    if (!inst?.kind) problems.push(`instances.${iid}: 缺 kind`);
+    else if (!(doc?.kinds || {})[inst.kind]) problems.push(`instances.${iid}: kinds 里没有 ${inst.kind}`);
+    if (!Array.isArray(inst?.members) || inst.members.length === 0) problems.push(`instances.${iid}: members 不能为空`);
+    for (const m of inst?.members || []) {
+      if (ids && !ids.has(m)) problems.push(`instances.${iid}: 图元索引里没有成员 ${m}`);
+      if (owner.has(m)) problems.push(`图元 ${m} 同时属于 ${owner.get(m)} 与 ${iid}`);
+      else owner.set(m, iid);
+    }
+    for (const o of inst?.openings || []) {
+      if (!instanceIds.has(o)) problems.push(`instances.${iid}: openings 引用了不存在的实例 ${o}`);
+    }
+    if (inst?.host && !instanceIds.has(inst.host)) problems.push(`instances.${iid}: host 引用了不存在的实例 ${inst.host}`);
+    for (const f of ['length', 'thickness', 'width', 'area']) {
+      if (inst?.[f] != null && !(typeof inst[f] === 'number' && inst[f] > 0)) problems.push(`instances.${iid}: ${f} 必须是正数`);
+    }
+  }
   for (const [id, a] of Object.entries(doc?.assignments || {})) {
     if (ids && !ids.has(id)) problems.push(`assignments.${id}: 图元索引里没有这个 id`);
     if (!a?.kind) problems.push(`assignments.${id}: 缺 kind`);

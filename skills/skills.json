@@ -1,7 +1,7 @@
 {
   "schema": "skills-bundle/v1",
   "references": {
-    "cad-to-space-data": ["docs/space-workflow-contract.md", "docs/cad-conventions.md", "docs/route-dxf-layout.md", "docs/route-building.md", "docs/structure-format.md", "docs/structure.schema.json", "schemas/README.md"],
+    "cad-to-space-data": ["docs/space-workflow-contract.md", "docs/cad-conventions.md", "docs/cad-component-split.md", "docs/route-dxf-layout.md", "docs/route-building.md", "docs/structure-format.md", "docs/structure.schema.json", "schemas/README.md"],
     "floor-plan-design": ["docs/space-workflow-contract.md", "docs/spec-format.md", "docs/furnishing.md", "docs/mep-rules.md", "schemas/README.md"],
     "plan-to-3d": ["docs/space-workflow-contract.md", "docs/spec-format.md", "schemas/README.md"],
     "design-to-3d-sync": ["docs/space-workflow-contract.md", "docs/design-sync-manifest.md", "schemas/design-sync.schema.json", "docs/design-image-prompts.md"],

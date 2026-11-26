@@ -28,7 +28,8 @@ description: 将 CAD 户型图转成可维护、可追溯的空间数据，核�
 
 ## 仓库资源（按需）
 
-- CAD 语义：[cad-conventions.md](references/cad-conventions.md)。图例是线索，仍以当前图纸证据为准。
+- 构件类别与颜色约定：[cad-conventions.md](references/cad-conventions.md)。图例是线索，仍以当前图纸证据为准。
+- 构件怎么拆（每类怎么认、在哪断开、粒度怎么定、失败模式）：[cad-component-split.md](references/cad-component-split.md)。
 - 复杂图块：[route-dxf-layout.md](references/route-dxf-layout.md)；多层：[route-building.md](references/route-building.md)。
 - 数据接口：[structure-format.md](references/structure-format.md) 与 [structure.schema.json](references/structure.schema.json)。二维线框不自动升级为已核实的空间实体。
 - 工具命令：`space --help`；`space cad inspect` 保留图元和来源，`space cad view` 生成对照页。空间实体接口见 [数据格式](references/structure-format.md)。
@@ -36,8 +37,10 @@ description: 将 CAD 户型图转成可维护、可追溯的空间数据，核�
 
 工具替代不改变上述来源保留与核查要求。
 
-## 构件分类与着色交付
+## 构件分类与拆分交付
 
-原图核对 HTML 同时提供构件分类视图与原线稿对照。将类别、判定依据、待核状态和源图元 ID（含块实例路径）保存在可单独维护的分类文件中，预览读取同一份映射。逐项校验覆盖和重复归类。图例标明计数单位，可切换类别、点选查看来源。
+分类与拆分规则见 [cad-component-split.md](references/cad-component-split.md)：判断顺序（图例 > 图层 > 几何 > 邻接 > 颜色）、每类构件的认法与断开点、实例粒度、自检清单和输出格式。
 
-梁线与梁高标注、门扇与窗带、实体墙轮廓与柱墩分别识别。混用图层或同色时按完整符号、洞口和邻接几何分辨。墙体类别另分已确认承重、已确认非承重、承重待核；确认需结构图、明确图例或可靠的逐段记录。证据不足的门窗组合、推拉扇及其余细节保留待核类别。项目专用句柄、颜色和映射放在项目目录。
+产出两层数据：图元级 `assignments`（每条线归到哪类）与实例级 `instances`（一段墙/一根梁/一樘窗/一个柱，带成员、尺寸、宿主）。只做前者等于没拆——数据仍是逐条线。类别声明（`kinds`）、颜色、判定依据随项目走，存 `data/cad/components.json`；项目专用句柄与映射放在项目目录，不写进技能。
+
+承重/非承重需结构图、明确图例或可靠的逐段记录；证据不足的保留待核。门窗组合、推拉扇等细节同样保留待核，不硬猜。

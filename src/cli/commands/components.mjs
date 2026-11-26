@@ -61,7 +61,9 @@ export const commands = [
           kinds = converted.kinds;
           skipped = converted.skipped;
         }
-        const doc = componentsDoc({sourceSha256: sha, kinds, assignments});
+        // 实例层可选：本契约文件里有就带过去，别在导入时静默丢掉。
+        const instances = raw.schema === SCHEMA ? raw.instances || {} : {};
+        const doc = componentsDoc({sourceSha256: sha, kinds, assignments, instances});
         const problems = validateComponents(doc, {entityIds: ids});
         if (problems.length) {
           print(`不合契约：${problems.length} 条`);
