@@ -32,9 +32,10 @@ try {
 
   await page.goto(server.url, {waitUntil: 'networkidle0'});
   await page.waitForSelector('[data-testid="index-toggle"]', {timeout: 15000});
-  // 首屏只允许能力清单与项目概览；整包图纸/模型必须等用户主动打开面板才加载。
+  // 首屏允许：能力清单、项目概览、数据集的模型（默认「数据预览」要画它，通常 <1MB）。
+  // 仍然禁止：整包图纸（cad-source）——那是视口取数该负责的部分。
   const initialRequests = [...requests];
-  const initialBulk = initialRequests.filter(u => /\/api\/file\?.*(source|model)\.json/.test(u));
+  const initialBulk = initialRequests.filter(u => /\/api\/file\?.*source\.json/.test(u));
   assert.deepEqual(initialBulk, [], `首屏请求了整包 JSON：${initialBulk.join(', ')}`);
   await page.click('[data-testid="index-toggle"]');
 
