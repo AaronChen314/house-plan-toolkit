@@ -15,6 +15,7 @@ import {commands as deliveryCommands} from './commands/delivery.mjs';
 import {commands as capCommands} from './commands/cap.mjs';
 import {commands as pluginCommands} from './commands/plugin.mjs';
 import {commands as sourceCommands} from './commands/source.mjs';
+import {commands as componentsCommands} from './commands/components.mjs';
 import {commands as assetsCommands} from './commands/assets.mjs';
 import {commands as pipelineCommands} from './commands/pipeline.mjs';
 import {commands as envCommands} from './commands/env.mjs';
@@ -34,6 +35,7 @@ export const COMMANDS = [
   ...capCommands,
   ...pluginCommands,
   ...sourceCommands,
+  ...componentsCommands,
   ...assetsCommands,
   ...pipelineCommands,
   ...envCommands

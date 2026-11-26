@@ -2,6 +2,7 @@ import {h, Fragment, render} from 'preact';
 import {useState, useEffect, useRef, useMemo} from 'preact/hooks';
 import {createModelStage} from '../views/model3d.js';
 import {palette, classifyEntity, categoryForEntityType, categoryColor, CAD_CATEGORIES as CATEGORIES} from '../../contracts/cad-colors.mjs';
+import {COMPONENTS, STRUCTURAL_KEYS} from '../../contracts/components.mjs';
 
 const fileUrl = (project, rel) => `/api/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(rel)}`;
 
@@ -719,8 +720,12 @@ function classifyCadEntity(e) {
   return {category: hit.category || 'other', basis: hit.basis || 'none', confidence: hit.confidence ?? 0};
 }
 
-function CadPreview({data, showKinds = false}) {
-  const all = useMemo(() => (data.entities || []).map(e => ({...e, ...classifyCadEntity(e)})), [data]);
+function CadPreview({data, showKinds = false, components = null, onAssign = null}) {
+  const all = useMemo(() => (data.entities || []).map(e => {
+    const a = components?.assignments?.[e.id];
+    if (a) return {...e, category: a.kind, basis: a.provenance || 'manual', confidence: a.confidence ?? 1, assigned: true};
+    return {...e, ...classifyCadEntity(e), assigned: false};
+  }), [data, components]);
   const [hidden, setHidden] = useState(() => new Set());
   const linesAll = all.filter(e => e.points?.length > 1);
   const textsAll = all.filter(e => e.text && e.at);
@@ -780,8 +785,8 @@ function CadPreview({data, showKinds = false}) {
             <label class="meta" key={k}>
               <input type="checkbox" checked={!hidden.has(k)}
                 onChange={() => setHidden(prev => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next; })} />
-              <i style={`display:inline-block;width:.7em;height:.7em;margin-right:.3em;border-radius:2px;background:${categoryColor(k)}`} />
-              {CATEGORIES[k]?.label || k} {counts[k]}
+              <i style={`display:inline-block;width:.7em;height:.7em;margin-right:.3em;border-radius:2px;background:${COMPONENTS[k]?.color || categoryColor(k)}`} />
+              {COMPONENTS[k]?.label || CATEGORIES[k]?.label || k} {counts[k]}
             </label>
           ))}
         </div>
@@ -789,10 +794,9 @@ function CadPreview({data, showKinds = false}) {
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
-            <polyline key={e.id || i} fill="none" stroke={e.color || categoryColor(e.category) || (e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86')}
+            <polyline key={e.id || i} fill="none" stroke={e.color || COMPONENTS[e.category]?.color || categoryColor(e.category) || (e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
-              onClick={() => setInfo({handle: e.handle, type: e.type, layer: e.effectiveLayer || e.layer,
-                category: e.category, basis: e.basis, confidence: e.confidence})} style="cursor:pointer" />
+              onClick={() => setInfo(e)} style="cursor:pointer" />
           ))}
           {texts.map((t, i) => (
             <text key={i} x={t.at[0]} y={-t.at[1]} font-size={t.height || 100} fill="#34483b"
@@ -800,7 +804,21 @@ function CadPreview({data, showKinds = false}) {
           ))}
         </svg>
       </div>
-      {info && <pre class="meta">{JSON.stringify(info, null, 2)}</pre>}
+      {info && (
+        <div class="toolbar" data-testid="entity-info">
+          <span class="meta">已选 <code>{info.handle || info.text}</code></span>
+          <span class="meta">{info.type} · 图层 <code>{info.effectiveLayer || info.layer}</code></span>
+          <span class="meta">构件：<b>{COMPONENTS[info.category]?.label || CATEGORIES[info.category]?.label || info.category}</b>
+            {info.basis ? `（依据 ${info.basis}${info.confidence != null ? ` · 置信度 ${info.confidence}` : ''}）` : ''}</span>
+          {onAssign && info.handle && (
+            <label class="meta">改为
+              <select value={info.category} onChange={e => onAssign(info, e.target.value)}>
+                {STRUCTURAL_KEYS.concat(['annotation', 'other']).map(k => <option key={k} value={k}>{COMPONENTS[k].label}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -809,7 +827,12 @@ function SourcePanel({projectPath, files}) {
   const candidates = (files || []).filter(f => typeof f === 'string' && /\.json$/.test(f) && /cad|source/i.test(f));
   const [file, setFile] = useState(candidates.find(p => /source\.json$/.test(p)) || candidates[0] || '');
   const [data, setData] = useState(null);
+  const [components, setComponents] = useState(null);
   const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+
+  const componentsRel = 'data/cad/components.json';
+  const hasComponents = (files || []).includes(componentsRel);
 
   useEffect(() => {
     if (!file) return;
@@ -823,10 +846,28 @@ function SourcePanel({projectPath, files}) {
     return () => { dead = true; };
   }, [file, projectPath]);
 
+  useEffect(() => {
+    if (!hasComponents) { setComponents(null); return; }
+    let dead = false;
+    fetch(fileUrl(projectPath, componentsRel)).then(r => (r.ok ? r.json() : null))
+      .then(j => { if (!dead) setComponents(j); }).catch(() => { if (!dead) setComponents(null); });
+    return () => { dead = true; };
+  }, [componentsRel, hasComponents, projectPath, msg]);
+
+  async function assign(entity, kind) {
+    const r = await fetch('/api/components', {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({project: projectPath, id: entity.handle, kind})
+    }).then(x => x.json()).catch(e => ({ok: false, error: e.message}));
+    if (r.ok) { setMsg(`已把 ${entity.handle} 改为 ${COMPONENTS[kind]?.label || kind}`); }
+    else setErr(r.error || '写入失败');
+  }
+
   return (
     <div class="panel" data-testid="source-panel">
       <h2>构件核对</h2>
-      <p class="desc">每条线带构件类型：类型来自图层名与图元类型，不猜几何。点线看 handle / 图层 / 依据；勾选框按类型过滤。</p>
+      <p class="desc">构件类型优先级：人工/AI 标注（data/cad/components.json）&gt; 图层名规则 &gt; 图元类型。点线看 handle / 图层 / 依据，并可当场改判。</p>
       <div class="toolbar">
         <label class="meta">图元索引
           <select value={file} onChange={e => setFile(e.target.value)}>
@@ -835,7 +876,9 @@ function SourcePanel({projectPath, files}) {
         </label>
       </div>
       {err && <div class="banner err">{err}</div>}
-      {data && <CadPreview data={data} showKinds />}
+      {msg && <div class="banner ok">{msg}</div>}
+      {!hasComponents && data && <div class="banner warn">还没有构件标注：现在只按图层名归类。用 <code>space components import --file components.json</code> 导入，或点线当场改判。</div>}
+      {data && <CadPreview data={data} showKinds components={components} onAssign={assign} />}
       {!data && !err && <div class="banner warn">还没有图元索引：<code>space cap run cad.inspect --dxf …</code></div>}
     </div>
   );

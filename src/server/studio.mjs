@@ -7,7 +7,9 @@ import {build} from 'esbuild';
 import {ROOT} from '../root.mjs';
 import {initPlugins, listCapabilities, listPlanned, pluginSummary, runCapability, projectOverview, STAGES, resolveInside} from '../capabilities/index.mjs';
 import {pluginsEnabled} from '../contracts/plugins.mjs';
+import crypto from 'node:crypto';
 import {openStore} from '../store/index.mjs';
+import {COMPONENTS, componentsDoc, validateComponents, summarize} from '../contracts/components.mjs';
 import {queryIndex, statIndexFor} from '../indexer/build.mjs';
 import {queryProblems} from '../contracts/index-query.mjs';
 
@@ -111,6 +113,34 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
         if (problems.length) return send(res, 400, JSON.stringify({error: problems.join('；'), problems}));
         const store = openStore(path.resolve(file));
         return send(res, 200, JSON.stringify(await queryIndex(store, query)));
+      }
+
+      // 构件核对：改一条图元的构件类别，立刻写回 data/cad/components.json。
+      if (req.method === 'POST' && p === '/api/components') {
+        const body = await readJsonBody(req);
+        if (!body.project || !body.id || !body.kind) return send(res, 400, JSON.stringify({error: '缺少 project / id / kind'}));
+        try {
+          const store = openStore(path.resolve(body.project));
+          const target = 'data/cad/components.json';
+          const sourceRel = 'output/cad/source/source.json';
+          if (!store.exists(sourceRel)) throw new Error('还没有图元索引：先跑 cad.inspect');
+          const ids = store.readJson(sourceRel).entities.map(e => e.id);
+          if (!ids.includes(body.id)) throw new Error(`图元索引里没有 ${body.id}`);
+          const doc = store.exists(target) ? store.readJson(target) : componentsDoc({sourceSha256: sourceSha});
+          doc.assignments = doc.assignments || {};
+          doc.assignments[body.id] = {kind: body.kind, provenance: body.provenance || 'manual', basis: body.basis || COMPONENTS[body.kind]?.basis || '人工改判'};
+          const problems = validateComponents(doc, {entityIds: ids});
+          if (problems.length) throw new Error(problems[0]);
+          store.writeData(target, JSON.stringify(doc, null, 2), {
+            kind: 'cad-components',
+            note: `构件改判 ${body.id} → ${body.kind}`,
+            baseHash: store.exists(target) ? store.hashOf(target) : null,
+            confirm: true
+          });
+          return send(res, 200, JSON.stringify({ok: true, counts: summarize(doc)}));
+        } catch (e) {
+          return send(res, 200, JSON.stringify({ok: false, error: e.message}));
+        }
       }
 
       if (req.method === 'POST' && p === '/api/run') {

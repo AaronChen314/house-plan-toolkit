@@ -9,13 +9,13 @@ def inspect(source,box=None,expand=True):
  # 块必须展开：装修图把家具/门扇塞进块里，不展开就丢掉带语义图层的东西
  # （实测一张户型图的 1317 个图元全在匿名块 *U 里）。
  # 但嵌套块会爆炸，所以三重设限：深度、同一 INSERT 链不重复、总行数上限。
- MAX_DEPTH=1;MAX_ROWS=20000;truncated=[False];EXPAND=[expand]
+ MAX_DEPTH=1;MAX_ROWS=20000;MAX_BLOCK=500;truncated=[False];EXPAND=[expand]
  def capped(identity,reason,hard=True):
   # 行数上限才算截断；嵌套块只记一条说明，不当作数据缺失。
   if not hard: issues.append({'id':identity,'message':reason});return
   if not truncated[0]:issues.append({'id':identity,'message':reason})
   truncated[0]=True
- def visit(e,chain=(),layer='0',color=7,depth=0):
+ def visit(e,chain=(),layer='0',color=7,depth=0,block_names=()):
   handle=e.dxf.get('handle') or ('virtual-'+str(len(rows)));identity='/'.join((*chain,handle))
   effective_layer=e.dxf.layer if e.dxf.layer!='0' else layer
   aci=e.dxf.get('color',256);resolved=doc.layers.get(effective_layer).color if aci==256 and effective_layer in doc.layers else color if aci==0 else aci
@@ -23,15 +23,25 @@ def inspect(source,box=None,expand=True):
    if not EXPAND[0]:
     row={'id':identity,'handle':handle,'blockPath':list(chain),'type':'INSERT','layer':e.dxf.layer,'effectiveLayer':effective_layer,'aci':aci,'resolvedAci':resolved,'linetype':e.dxf.get('linetype','BYLAYER'),'insert':[round(e.dxf.insert.x,3),round(-e.dxf.insert.y,3)],'block':e.dxf.name};rows.append(row);return
    if depth>=MAX_DEPTH: capped(identity,'Nested block kept as reference (depth limit %d)'%MAX_DEPTH,hard=False);return
+   # 自引用块（DWG 转换常见：匿名块 *U 里又插入 *U）按名字判环，不能靠 handle。
+   if e.dxf.name in block_names:
+    capped(identity,'Cyclic block reference %r (not expanded)'%e.dxf.name,hard=False)
+    row={'id':identity,'handle':handle,'blockPath':list(chain),'type':'INSERT','layer':e.dxf.layer,'effectiveLayer':effective_layer,'aci':aci,'resolvedAci':resolved,'linetype':e.dxf.get('linetype','BYLAYER'),'insert':[round(e.dxf.insert.x,3),round(-e.dxf.insert.y,3)],'block':e.dxf.name,'cyclic':True};rows.append(row);return
    if handle in chain: capped(identity,'Cyclic block reference');return
+   # 图库块：一个块里塞几百上千个符号（实测 3416×1866mm 里有 1317 个图元），
+   # 展开只会把家具库当成平面图内容画出来，所以只记引用。
+   block_size=len(doc.blocks[e.dxf.name]) if e.dxf.name in doc.blocks else 0
+   if block_size>MAX_BLOCK:
+    capped(identity,'Block %r kept as reference (library block, %d entities)'%(e.dxf.name,block_size),hard=False)
+    row={'id':identity,'handle':handle,'blockPath':list(chain),'type':'INSERT','layer':e.dxf.layer,'effectiveLayer':effective_layer,'aci':aci,'resolvedAci':resolved,'linetype':e.dxf.get('linetype','BYLAYER'),'insert':[round(e.dxf.insert.x,3),round(-e.dxf.insert.y,3)],'block':e.dxf.name,'library':True,'blockSize':block_size};rows.append(row);return
    if len(rows)>=MAX_ROWS: capped(identity,'Entity limit reached (%d)'%MAX_ROWS);return
    # Pair originals with transformed entities when possible; keep block instance path.
    originals=list(doc.blocks[e.dxf.name]);virtual=list(e.virtual_entities(skipped_entity_callback=lambda ent,reason:issues.append({'id':identity,'message':reason})))
    for i,v in enumerate(virtual):
     if len(rows)>=MAX_ROWS: capped(identity,'Entity limit reached (%d)'%MAX_ROWS);break
     original=originals[i].dxf.handle if len(originals)==len(virtual) else 'virtual-'+str(i)
-    v.dxf.handle=original;visit(v,(*chain,handle),effective_layer,resolved,depth+1)
-   for attr in e.attribs:visit(attr,(*chain,handle),effective_layer,resolved,depth+1)
+    v.dxf.handle=original;visit(v,(*chain,handle),effective_layer,resolved,depth+1,(*block_names,e.dxf.name))
+   for attr in e.attribs:visit(attr,(*chain,handle),effective_layer,resolved,depth+1,(*block_names,e.dxf.name))
    return
   b=bbox.extents([e]);
   if box and b.has_data and (b.extmax.x<box[0] or b.extmin.x>box[2] or b.extmax.y<box[1] or b.extmin.y>box[3]):return
