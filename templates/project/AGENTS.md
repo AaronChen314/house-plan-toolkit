@@ -5,5 +5,5 @@
 - 目录用途见 `README.md` 的“目录约定”，不要新建同类目录。
 - 生成物只能写到 `output/`；`data/`、`source/` 不由工具改写。
 - 处理顺序按任务读取对应技能：读图与数据 → 设计 → 三维 → 同步 → 出图。
-- 改完数据先自检：`node toolkit/checks/layout.mjs --project project.json`。
+- 改完数据先自检：`space lint --project project.json`（目录、格式、生成物位置、来源登记）。
 - 工具版本以 `space.lock.json` 为准；升级工具后重新核查并更新锁文件。

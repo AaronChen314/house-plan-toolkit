@@ -31,4 +31,4 @@
 | `docs/` | 方案说明、比较、交接记录 | 人 |
 | `output/` | 生成物，唯一出口，不入库 | 工具 |
 
-自检：`node toolkit/checks/layout.mjs --project project.json`
+自检：`space lint --project project.json`

@@ -3,7 +3,7 @@
 ### 4. 生成并自查（循环直到通过）
 
 ```bash
-python scripts/build.py <工作目录>/spec.json -o <工作目录>/check.html
+space run build <工作目录>/spec.json -o <工作目录>/check.html
 node scripts/check.mjs <工作目录>/check.html <工作目录>/check
 ```
 
@@ -43,8 +43,8 @@ spec 里把图上**每一道**尺寸链写进去，check.mjs 逐刻度对（每�
 ### 全楼墙体对账（wallaudit.py）
 
 ```bash
-python scripts/wallaudit.py <工作目录>/spec.json --out <工作目录>/audit                     # 用每层 underlay 底图
-python scripts/wallaudit.py <工作目录>/spec.json --pdf 图纸.pdf --scale 29.03 --origin-pt 172.3 103.2 --out ...   # 矢量 PDF 高清渲染再数
+space run wallaudit <工作目录>/spec.json --out <工作目录>/audit                     # 用每层 underlay 底图
+space run wallaudit <工作目录>/spec.json --pdf 图纸.pdf --scale 29.03 --origin-pt 172.3 103.2 --out ...   # 矢量 PDF 高清渲染再数
 ```
 
 沿每段墙每 150mm 横切原图，数墙厚范围内几条线：2 条 = 实墙、3~4 条 = 窗 / 玻璃、没有 = 洞口 / 开敞、灰色填充 = 柱，和建模比对，只报不一致的，每处一张放大图（`sheet_<层>.png`）。墙边的衣柜、床头板、浴室柜先用 spec 的家具外框遮掉，不会被数成玻璃。
@@ -53,7 +53,7 @@ python scripts/wallaudit.py <工作目录>/spec.json --pdf 图纸.pdf --scale 29
 ### 反向对账：原图上有、模型里没有（coverage.py）
 
 ```bash
-python scripts/coverage.py <工作目录>/spec.json --out <工作目录>/coverage
+space run coverage <工作目录>/spec.json --out <工作目录>/coverage
 ```
 
 `wallaudit` 沿“已经建了的墙”去数线，漏建的墙它看不到；check 的悬空墙端也查不出“两头都接上了、整段没建”的墙。coverage 反过来查：
@@ -68,8 +68,8 @@ python scripts/coverage.py <工作目录>/spec.json --out <工作目录>/coverag
 ### 门的开向（doorcheck.py）
 
 ```bash
-python scripts/doorcheck.py <工作目录>/spec.json --out <工作目录>/doors                       # 只报不一致的
-python scripts/doorcheck.py <工作目录>/spec.json --out … --write <工作目录>/spec_doors.json     # 有把握的直接改好另存
+space run doorcheck <工作目录>/spec.json --out <工作目录>/doors                       # 只报不一致的
+space run doorcheck <工作目录>/spec.json --out … --write <工作目录>/spec_doors.json     # 有把握的直接改好另存
 ```
 
 每扇平开门试 4 种画法（门轴在 from / to × 开向墙哪一侧），沿理论门弧 + 门扇线采样原图（深色线、浅色 / 虚线、彩色图木地板上的白线都认），

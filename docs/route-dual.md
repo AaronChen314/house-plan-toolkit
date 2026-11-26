@@ -17,8 +17,8 @@
 ```bash
 # 1. 原图：照图片路线 / CAD 路线出墙，spec 里写好原图的 underlay（image、mmPerPx、x、y）
 # 2. 设计图对到原图的毫米坐标系（自动找刻度、按尺寸链拟合比例和原点，不用手工读刻度像素）
-python scripts/dimticks.py 设计图.jpg --out <工作目录>/ticksB          # 先看 ticks.png：尺寸线和刻度认对没有
-python scripts/align2.py <工作目录>/spec.json 设计图.jpg \
+space run dimticks 设计图.jpg --out <工作目录>/ticksB          # 先看 ticks.png：尺寸线和刻度认对没有
+space run align2 <工作目录>/spec.json 设计图.jpg \
        --x-segs 240 1220 240 2740 230 2370 240 3820 240 --y-segs 240 3260 120 2480 240 1780 230 4570 240 \
        --x-start -120 --y-start -120 --out <工作目录>/align
 #   --x-segs / --y-segs：设计图上一道水平 / 竖直尺寸链（mm，按图上数字）；
@@ -26,7 +26,7 @@ python scripts/align2.py <工作目录>/spec.json 设计图.jpg \
 #   图上文字倒着 / 侧着（设计图转过方向）：加 --rotate 180 / 90 / 270
 #   看 align.png（红 = 原图，青 = 设计图）重不重合；align.json 的 fit.*.rms_mm ≤ 20 才算对上
 # 3. 家具外框叠到设计图上逐件核对（墙仍按 spec）
-python scripts/furnoverlay.py <工作目录>/spec.json --image 设计图.jpg --mm-per-px <k> --origin <x> <y> [--rotate 180] --out <工作目录>/furnB
+space run furnoverlay <工作目录>/spec.json --image 设计图.jpg --mm-per-px <k> --origin <x> <y> [--rotate 180] --out <工作目录>/furnB
 ```
 
 - align2 输出的 `underlay` 可以直接当第二张底图用（多层时某层的 underlay 换成设计图那张），`rotate` 字段 build.py / furnoverlay / wallaudit 都认。

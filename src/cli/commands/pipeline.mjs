@@ -95,7 +95,8 @@ export const commands = [
       const registry = JSON.parse(fs.readFileSync(path.join(root, 'src/tools.json'), 'utf8'));
       const tool = registry[name];
       if (!tool) throw new Error('未知工具：' + name);
-      spawn(tool.runtime === 'python' ? pythonFor() : process.execPath, [path.join(root, 'src', tool.entry), ...args.rest]);
+      const project = fs.existsSync('project.json') ? path.resolve('project.json') : undefined;
+      spawn(tool.runtime === 'python' ? pythonFor(project) : process.execPath, [path.join(root, 'src', tool.entry), ...args.rest]);
     }
   }
 ];

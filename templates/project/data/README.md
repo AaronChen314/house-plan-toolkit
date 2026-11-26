@@ -4,4 +4,4 @@
 - `designs/<方案>/`：设计版本（`design.json` 与 `design-manifest.json`）。
 - `assets/`：只属于本项目的模型、材质与贴图；通用资产在 CLI 包里。
 
-生成物不放在这里。改数据后运行 `node toolkit/checks/layout.mjs --project project.json`。
+生成物不放在这里。改数据后运行 `space lint --project project.json`。

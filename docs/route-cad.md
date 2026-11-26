@@ -1,11 +1,19 @@
 # CAD 路线：矢量 PDF / DXF
 
+> **识别类脚本已归档，不再随 `space run` 提供。**
+> `cadsplit` / `cadvec` / `analyze` / `wallfit` / `wallaudit` / `doorcheck` 仍在安装包内
+> （`$TOOLKIT/src/legacy/scripts/`，`TOOLKIT` 例如 `/usr/local/lib/node_modules/house-plan-toolkit`），
+> 需要时可 `python "$TOOLKIT/src/legacy/scripts/<脚本>.py"` 直接跑，但不再是产品路径。
+> 当前主路径：`space cap run cad.inspect` 出图元索引 → AI 读图 → `space components import` / `space trace save` 落数据。
+
+
+
 ### 2C. CAD 路线：矢量识别（PDF / DXF）
 
 ```bash
-python scripts/cadvec.py 图纸.pdf --out <工作目录>/cad      # 图上有尺寸标注：自动读数字定比例、按标注定坐标
-python scripts/cadvec.py 图纸.dxf --out <工作目录>/cad      # DXF：自带单位，标注图元（含改写的标注文字）直接用
-python scripts/cadvec.py 图纸.pdf --total-width 10540 ...   # 读不出标注时才需要：最外道总尺寸（墙体外皮）
+python "$TOOLKIT/src/legacy/scripts/cadvec.py" 图纸.pdf --out <工作目录>/cad      # 图上有尺寸标注：自动读数字定比例、按标注定坐标
+python "$TOOLKIT/src/legacy/scripts/cadvec.py" 图纸.dxf --out <工作目录>/cad      # DXF：自带单位，标注图元（含改写的标注文字）直接用
+python "$TOOLKIT/src/legacy/scripts/cadvec.py" 图纸.pdf --total-width 10540 ...   # 读不出标注时才需要：最外道总尺寸（墙体外皮）
 ```
 
 - **尺寸以标注数字为准（精度的关键）**：用户拿图纸上的数字逐个对设计器，**墙厚、每段墙、洞口、房间开间进深都必须等于标注**，不是“和图形差不多”。cadvec 的做法：
@@ -28,8 +36,8 @@ python scripts/cadvec.py 图纸.pdf --total-width 10540 ...   # 读不出标注�
 第二次实战（AH26110 别墅，6 页矢量 PDF，负二到顶层各一页）cadvec 报“没认出墙厚”、cadsplit 把一页切成两层。用 `cadpair.py`：
 
 ```bash
-python scripts/cadpair.py 图纸.pdf --total-width 14025 --out <工作目录>/pair --names 负二层,负一层,一层,二层,三层,顶层
-python scripts/cadpair.py 图纸.pdf --scale 29.03 --origin-pt 172.3 103.2 --out ...      # 已知 mm/pt 和原点
+space run cadpair 图纸.pdf --total-width 14025 --out <工作目录>/pair --names 负二层,负一层,一层,二层,三层,顶层
+space run cadpair 图纸.pdf --scale 29.03 --origin-pt 172.3 103.2 --out ...      # 已知 mm/pt 和原点
 ```
 
 - 先看 `layers.json`：每类图元（描边 / 填充、线色、线宽、填充色）有多少条——哪类是墙线一眼看出（AH26110：黑色描边 = 墙，灰色填充 = 家具和文字，灰色小实心块 = 柱）。默认取黑色描边，`--wall-color r,g,b` 改。

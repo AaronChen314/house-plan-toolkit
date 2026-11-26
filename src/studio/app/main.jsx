@@ -731,7 +731,8 @@ const UNASSIGNED = 'unassigned';
 function CadPreview({data, showKinds = false, components = null, onAssign = null}) {
   const all = useMemo(() => (data.entities || []).map(e => {
     const a = components?.assignments?.[e.id];
-    if (a) return {...e, category: a.kind, basis: a.provenance || 'manual', confidence: a.confidence ?? 1, assigned: true};
+    // 依据是标注自己写的 basis；没写就别拿 provenance 冒充，置信度缺省就不显示。
+    if (a) return {...e, category: a.kind, basis: a.basis || null, provenance: a.provenance || null, confidence: a.confidence ?? null, assigned: true};
     // 没有标注就是没标注：不从图层名猜构件。
     return {...e, category: UNASSIGNED, basis: null, confidence: null, assigned: false};
   }), [data, components]);
@@ -803,7 +804,7 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
-            <polyline key={e.id || i} fill="none" stroke={e.category === UNASSIGNED ? '#b3b8bd' : kindColor(components, e.category, '#7d8f86')}
+            <polyline key={e.id || i} data-id={e.id} fill="none" stroke={e.category === UNASSIGNED ? '#b3b8bd' : kindColor(components, e.category, '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
               onClick={() => setInfo(e)} style="cursor:pointer" />
           ))}
@@ -813,21 +814,29 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
           ))}
         </svg>
       </div>
-      {info && (
+      {info && (() => {
+        // 改判后组件会刷新，详情要用最新的标注，不能停在点击时的快照。
+        const now = components?.assignments?.[info.id];
+        const kind = now?.kind || info.category;
+        const basis = now?.basis || info.basis;
+        const provenance = now?.provenance || info.provenance;
+        const confidence = now?.confidence ?? info.confidence;
+        return (
         <div class="toolbar" data-testid="entity-info">
-          <span class="meta">已选 <code>{info.handle || info.text}</code></span>
+          <span class="meta">已选 <code>{info.id || info.handle || info.text}</code></span>
           <span class="meta">{info.type} · 图层 <code>{info.effectiveLayer || info.layer}</code></span>
-          <span class="meta">构件：<b>{info.category === UNASSIGNED ? '未标注' : kindLabel(components, info.category)}</b>
-            {info.basis ? `（依据 ${info.basis}${info.confidence != null ? ` · 置信度 ${info.confidence}` : ''}）` : ''}</span>
-          {onAssign && info.handle && (
+          <span class="meta">构件：<b>{kind === UNASSIGNED ? '未标注' : kindLabel(components, kind)}</b>
+            {basis || provenance ? `（依据 ${basis || '未写'}${provenance ? ` · 来源 ${provenance}` : ''}${confidence != null ? ` · 置信度 ${confidence}` : ''}）` : ''}</span>
+          {onAssign && info.id && (
             <label class="meta">改为
-              <select value={info.category} onChange={e => onAssign(info, e.target.value)}>
+              <select value={kind} onChange={e => onAssign(info, e.target.value)}>
                 {kindOrder(components).map(k => <option key={k} value={k}>{kindLabel(components, k)}</option>)}
               </select>
             </label>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -867,9 +876,10 @@ function SourcePanel({projectPath, files}) {
     const r = await fetch('/api/components', {
       method: 'POST',
       headers: {'content-type': 'application/json'},
-      body: JSON.stringify({project: projectPath, id: entity.handle, kind})
+      // 块内图元的 id 是 路径/handle（1816/2C2），必须按完整 id 写回。
+      body: JSON.stringify({project: projectPath, id: entity.id, kind})
     }).then(x => x.json()).catch(e => ({ok: false, error: e.message}));
-    if (r.ok) { setMsg(`已把 ${entity.handle} 改为 ${kindLabel(components, kind)}`); }
+    if (r.ok) { setMsg(`已把 ${entity.id} 改为 ${kindLabel(components, kind)}`); }
     else setErr(r.error || '写入失败');
   }
 
@@ -888,7 +898,8 @@ function SourcePanel({projectPath, files}) {
       {msg && <div class="banner ok">{msg}</div>}
       {!hasComponents && data && <div class="banner warn">还没有构件标注：现在只按图层名归类。用 <code>space components import --file components.json</code> 导入，或点线当场改判。</div>}
       {data && <CadPreview data={data} showKinds components={components} onAssign={assign} />}
-      {!data && !err && <div class="banner warn">还没有图元索引：<code>space cap run cad.inspect --dxf …</code></div>}
+      {!file && <div class="banner warn" data-testid="source-missing">还没有图元索引：<code>space cap run cad.inspect --dxf …</code></div>}
+      {file && !data && !err && <div class="meta" data-testid="source-loading">读取图元索引…</div>}
     </div>
   );
 }

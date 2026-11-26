@@ -1,5 +1,13 @@
 # 布置图 DXF 路线：整套 DXF 里挑一张还原（含家具块）
 
+> **识别类脚本已归档，不再随 `space run` 提供。**
+> `cadsplit` / `cadvec` / `analyze` / `wallfit` / `wallaudit` / `doorcheck` 仍在安装包内
+> （`$TOOLKIT/src/legacy/scripts/`，`TOOLKIT` 例如 `/usr/local/lib/node_modules/house-plan-toolkit`），
+> 需要时可 `python "$TOOLKIT/src/legacy/scripts/<脚本>.py"` 直接跑，但不再是产品路径。
+> 当前主路径：`space cap run cad.inspect` 出图元索引 → AI 读图 → `space components import` / `space trace save` 落数据。
+
+
+
 ### 2E. 布置图 DXF 路线：整套 DXF 里挑一张还原（含家具块）
 
 装修公司 / 设计院给的 DXF 常常是“整套图”：一张原始结构图 + 一张平面布置图（同一套轴网、上下排），还有天花、地材、灯具、空调、文字说明各自的图层；
@@ -7,12 +15,12 @@
 
 ```bash
 # 1. 看全图，找出要还原的那一张（一般是“平面布置图”：家具最全、门开向都画了）的 CAD 外框坐标（y 朝上）
-python scripts/dxf_prepare.py 图.dxf <工作目录>/selected.dxf --box X0 Y0 X1 Y1     # 只留这一张，展开块、修乱码、按图层统一颜色（墙 7、门 3、窗 4、标注 2、其余 8）
+space run dxf_prepare 图.dxf <工作目录>/selected.dxf --box X0 Y0 X1 Y1     # 只留这一张，展开块、修乱码、按图层统一颜色（墙 7、门 3、窗 4、标注 2、其余 8）
 # 2. 墙体初稿：坐标单位一般就是 mm
-python scripts/cadsplit.py <工作目录>/selected.dxf --out <工作目录>/split          # 描边墙、门窗洞口、柱
-python scripts/cadvec.py   <工作目录>/selected.dxf --out <工作目录>/cad            # 实心墙 / 管井 / 地漏 / 标注
+python "$TOOLKIT/src/legacy/scripts/cadsplit.py" <工作目录>/selected.dxf --out <工作目录>/split          # 描边墙、门窗洞口、柱
+python "$TOOLKIT/src/legacy/scripts/cadvec.py" <工作目录>/selected.dxf --out <工作目录>/cad            # 实心墙 / 管井 / 地漏 / 标注
 # 3. 家具和设备证据
-python scripts/dxfinventory.py 图.dxf --box X0 Y0 X1 Y1 --out <工作目录>/inv        # blocks.json + blocks-*.png 缩略图、texts.json、doors.json、underlay.png
+space run dxfinventory 图.dxf --box X0 Y0 X1 Y1 --out <工作目录>/inv        # blocks.json + blocks-*.png 缩略图、texts.json、doors.json、underlay.png
 ```
 
 - `dxfinventory.py` 的输出坐标 = (x − X0, Y1 − y)，和生成脚本、底图同一个坐标系（底图写 `{"image": "inv/underlay.png", "mmPerPx": 10, "x": 0, "y": 0}`）。
@@ -26,10 +34,10 @@ python scripts/dxfinventory.py 图.dxf --box X0 Y0 X1 Y1 --out <工作目录>/in
 - 一整段玻璃幕墙 / 带形窗写一个 `glassWall` 洞口就行，设计器会按被内墙打断的每段墙拆开（交接处留墙垛）。
 - **精确取数和逐项对账用 `scripts/dxfaudit.py`**（布置图一定要做，用户会拿原图一件件对）：
   ```bash
-  python scripts/dxfaudit.py blocks 图.dxf --box X0 Y0 X1 Y1 --out <工作目录>   # 家具块展开到叶子块：每把椅子 / 每张桌子的插入点、旋转、镜像 + deep-*.png 块定义缩略图
-  python scripts/dxfaudit.py cache  图.dxf --box X0 Y0 X1 Y1 --out <工作目录>   # 全部线段缓存
-  python scripts/dxfaudit.py q <工作目录> X Y R [图层]                           # 查某点附近的线：墙面、柜子外框、门扇、屏幕的精确坐标
-  python scripts/dxfaudit.py walls|doors|furn <工作目录>                         # 三项对账，MISS / FAKE / WALL 逐条处理到只剩能解释的
+  space run dxfaudit blocks 图.dxf --box X0 Y0 X1 Y1 --out <工作目录>   # 家具块展开到叶子块：每把椅子 / 每张桌子的插入点、旋转、镜像 + deep-*.png 块定义缩略图
+  space run dxfaudit cache  图.dxf --box X0 Y0 X1 Y1 --out <工作目录>   # 全部线段缓存
+  space run dxfaudit q <工作目录> X Y R [图层]                           # 查某点附近的线：墙面、柜子外框、门扇、屏幕的精确坐标
+  space run dxfaudit walls|doors|furn <工作目录>                         # 三项对账，MISS / FAKE / WALL 逐条处理到只剩能解释的
   ```
   - **家具朝向按块算，不要按“离哪张桌子近”猜**（阶梯教室里椅子离后一排桌子更近，猜出来整排反了）：叶子块的局部正面方向 (fx, fy)（看 deep-*.png：弧形靠背的对边是正面）
     → `vx, vy = fx·sx, fy·sy`，按块旋转角转到世界（DXF y 朝上），再换到设计器 (X, −Y)，`rot = atan2(−X, −Y)`（设计器正面 = rot2(0, 1, rot)）。镜像插入的块里圆弧会变成长短轴相等的 ELLIPSE。

@@ -3,7 +3,7 @@
 ### 6. 交付
 
 ```bash
-python scripts/build.py <工作目录>/spec.json -o <图片同目录>/<户型名>-装修设计器.html --zip
+space run build <工作目录>/spec.json -o <图片同目录>/<户型名>-装修设计器.html --zip
 ```
 
 `--zip` 同时打一个 `<户型名>-装修设计器.zip`：HTML + 原图 / 底图 + 生成脚本 + spec.json + 截图，用户问“怎么下载”时直接给这个（云端环境尤其要给）。
@@ -12,7 +12,7 @@ python scripts/build.py <工作目录>/spec.json -o <图片同目录>/<户型名
 
 ```bash
 node scripts/qa.mjs <户型名>-装修设计器.html <工作目录>/qa          # 加 --quick 跳过 PDF 和光线追踪（约 8 分钟）
-python scripts/qa_files.py <工作目录>/qa/downloads                   # 导出的 PNG / DXF / PDF / CSV / JSON / 分享文件能不能正常打开
+space run qa_files <工作目录>/qa/downloads                   # 导出的 PNG / DXF / PDF / CSV / JSON / 分享文件能不能正常打开
 ```
 
 - **电脑性能一般时**（验收卡、超时一片）：验收进程默认就是“低于正常”优先级（Chrome 跟着降），电脑照常能用；再加 `--lite`（1280×800、快速画质、超时放宽一倍，判定标准不变）。

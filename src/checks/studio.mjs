@@ -103,6 +103,10 @@ try {
   // 构件核对：每条线带构件类型，可按类型过滤，点线能看依据。
   await page.click('[data-testid="source-toggle"]');
   await page.waitForSelector('[data-testid="source-panel"]', {timeout: 10000});
+  // 图元索引是异步读的：等画布出来或等「没有索引」的提示，别抢先判空。
+  await page.waitForFunction(() => document.querySelectorAll('[data-testid="source-panel"] svg polyline').length > 0
+    || !!document.querySelector('[data-testid="source-missing"]')
+    || !!document.querySelector('[data-testid="source-panel"] .banner.err'), {timeout: 15000}).catch(() => {});
   const sourcePanel = await page.evaluate(() => {
     const panel = document.querySelector('[data-testid="source-panel"]');
     const filters = [...(panel?.querySelectorAll('[data-testid="kind-filters"] label') || [])]
@@ -110,7 +114,7 @@ try {
     return {
       filters,
       lines: panel ? panel.querySelectorAll('svg polyline').length : 0,
-      empty: !!panel?.querySelector('.banner.warn')
+      empty: !!panel?.querySelector('[data-testid="source-missing"]')
     };
   });
   if (sourcePanel.empty) {
@@ -121,6 +125,23 @@ try {
     // 类型名必须是中文构件名，不能把内部键直接丢给用户。
     assert.ok(sourcePanel.filters.every(t => /[\u4e00-\u9fa5]/.test(t)), `类型过滤不是中文构件名：${sourcePanel.filters.join(' | ')}`);
   }
+  // 点一条线：详情必须出现构件名与依据，块内图元要显示完整 id（路径/句柄）。
+  const detail = await page.evaluate(() => {
+    const lines = [...document.querySelectorAll('[data-testid="source-panel"] svg polyline')];
+    const deep = lines.find(el => (el.dataset.id || '').includes('/')) || lines[0];
+    if (!deep) return {ok: false};
+    deep.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    return new Promise(resolve => setTimeout(() => {
+      const box = document.querySelector('[data-testid="entity-info"]');
+      resolve({ok: !!box, text: (box?.textContent || '').replace(/\s+/g, ' ').trim(), id: deep.dataset.id || ''});
+    }, 400));
+  });
+  if (!sourcePanel.empty) {
+    assert.ok(detail.ok, '点线之后没有出现图元详情');
+    assert.match(detail.text, /构件/, '详情里没有构件行');
+    if (detail.id.includes('/')) assert.ok(detail.text.includes(detail.id), `块内图元要显示完整 id：${detail.id}`);
+  }
+
   const bulkAfterSource = requests.filter(u => /\/api\/file\?.*source\.json/.test(u));
   assert.ok(bulkAfterSource.length <= 1, `构件核对重复拉取整包索引：${bulkAfterSource.length} 次`);
 
@@ -141,6 +162,7 @@ try {
     drawn,
     confirmPanel,
     sourcePanel,
+    detail,
     entityRequests: entityRequests.length,
     bulkRequests: bulk.length,
     errors

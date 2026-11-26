@@ -1,11 +1,19 @@
 # 整栋楼路线：一页多层 / 描边墙 / 多楼层
 
+> **识别类脚本已归档，不再随 `space run` 提供。**
+> `cadsplit` / `cadvec` / `analyze` / `wallfit` / `wallaudit` / `doorcheck` 仍在安装包内
+> （`$TOOLKIT/src/legacy/scripts/`，`TOOLKIT` 例如 `/usr/local/lib/node_modules/house-plan-toolkit`），
+> 需要时可 `python "$TOOLKIT/src/legacy/scripts/<脚本>.py"` 直接跑，但不再是产品路径。
+> 当前主路径：`space cap run cad.inspect` 出图元索引 → AI 读图 → `space components import` / `space trace save` 落数据。
+
+
+
 ### 2D. 整栋楼 / 描边墙路线：cadsplit.py
 
 ```bash
-python scripts/cadsplit.py 图纸.svg --out <工作目录>/split                      # SVG / DXF：坐标就是 mm
-python scripts/cadsplit.py 图纸.pdf --out <工作目录>/split --ref-dim 11720       # PDF：第一张平面最长那道水平尺寸（一般是最外道总尺寸）上标的数
-python scripts/cadsplit.py 图纸.pdf --out ... --scale 162.5                       # 或直接给 mm / pt
+python "$TOOLKIT/src/legacy/scripts/cadsplit.py" 图纸.svg --out <工作目录>/split                      # SVG / DXF：坐标就是 mm
+python "$TOOLKIT/src/legacy/scripts/cadsplit.py" 图纸.pdf --out <工作目录>/split --ref-dim 11720       # PDF：第一张平面最长那道水平尺寸（一般是最外道总尺寸）上标的数
+python "$TOOLKIT/src/legacy/scripts/cadsplit.py" 图纸.pdf --out ... --scale 162.5                       # 或直接给 mm / pt
 # 可选：--names 一层,二层,三层  --order ltr|rtl|ttb|btt（楼层在图上的排列）  --wall-color '#000000'
 ```
 

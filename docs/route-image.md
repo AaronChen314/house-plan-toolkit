@@ -1,5 +1,13 @@
 # 图片路线：户型图 / 截图 / 扫描件
 
+> **识别类脚本已归档，不再随 `space run` 提供。**
+> `cadsplit` / `cadvec` / `analyze` / `wallfit` / `wallaudit` / `doorcheck` 仍在安装包内
+> （`$TOOLKIT/src/legacy/scripts/`，`TOOLKIT` 例如 `/usr/local/lib/node_modules/house-plan-toolkit`），
+> 需要时可 `python "$TOOLKIT/src/legacy/scripts/<脚本>.py"` 直接跑，但不再是产品路径。
+> 当前主路径：`space cap run cad.inspect` 出图元索引 → AI 读图 → `space components import` / `space trace save` 落数据。
+
+
+
 适用：房产平台 / 家装设计平台户型图、售楼处户型图、手绘带尺寸的平面图、只有位图的 PDF（先用 `fitz` 200dpi 渲染成 PNG）。黑底 CAD 截图见文末「黑底 CAD 截图」。
 
 ### 1. 读图
@@ -17,10 +25,10 @@
 ### 1.5 拉正（rectify.py，有尺寸标注时默认先做）
 
 ```bash
-python scripts/dimticks.py 户型图.jpg --out <工作目录>/ticks                    # 自动找尺寸线和刻度：ticks.png 上 L0、L1… 编号
+space run dimticks 户型图.jpg --out <工作目录>/ticks                    # 自动找尺寸线和刻度：ticks.png 上 L0、L1… 编号
 #   写 chains.json：每条尺寸线配上图上的数字（格式见 rectify.py 开头），四周的尺寸链都写最准
-python scripts/rectify.py 户型图.jpg --chains <工作目录>/chains.json --out <工作目录>/rect
-python scripts/rectify.py 户型图.jpg --deskew --out <工作目录>/rect                # 还没读尺寸：只把小角度歪斜转正
+space run rectify 户型图.jpg --chains <工作目录>/chains.json --out <工作目录>/rect
+space run rectify 户型图.jpg --deskew --out <工作目录>/rect                # 还没读尺寸：只把小角度歪斜转正
 ```
 
 按尺寸线刻度（像素）+ 标注数字（毫米）拟合透视（单应矩阵），再按每个刻度的残差分段修正（同 axismap），重采样成**每像素固定毫米数**的 `rectified.png`：
@@ -34,7 +42,7 @@ python scripts/rectify.py 户型图.jpg --deskew --out <工作目录>/rect      
 ### 2. 自动识别墙体（初稿 + 比例）
 
 ```bash
-python scripts/analyze.py 户型图.jpg --total-width 12340 --total-height 11940 --out <工作目录>/analysis
+python "$TOOLKIT/src/legacy/scripts/analyze.py" 户型图.jpg --total-width 12340 --total-height 11940 --out <工作目录>/analysis
 ```
 
 - 输出 `mmPerPx`（比例），`scale_check` 里是按宽、按深分别算的比例。两者差 2% 以内说明比例可信。
@@ -44,7 +52,7 @@ python scripts/analyze.py 户型图.jpg --total-width 12340 --total-height 11940
   这些墙在 analysis.png 上编号带 `?`、也列在输出的 `bearing_unsure` 里——**必须对照原图图例逐面确认**（图例常写“承重墙 / 非承重墙 / 新建墙”）。
   常见画法：承重墙黑色或深灰实心、斜线填充；非承重墙浅灰实心或只画两条边线；外墙一般按承重处理；厨卫的 100~120mm 薄墙基本是非承重。
   颜色分界不对时用 `--bearing-max 亮度` 手动指定（承重墙颜色的最大亮度，0~255）。
-- 拉正过的图：`python scripts/analyze.py rect/rectified.png --scale <mpp> --origin <x> <y>`（rectify 打印的），draft.json 直接是 spec 坐标。
+- 拉正过的图：`python "$TOOLKIT/src/legacy/scripts/analyze.py" rect/rectified.png --scale <mpp> --origin <x> <y>`（rectify 打印的），draft.json 直接是 spec 坐标。
 - 隔墙只画了两条细边线、中间是白的（房产平台户型图常见）：**自动判断**（实心墙凑不够一圈外墙就按描边画法识别），也可以手动 `--outlined`。
 - 彩色户型图里亮度 175~215 的浅灰隔墙自动补上（只收细长、贴着已识别墙体的块；`--no-light-walls` 关闭）。
 - 墙在窗处断开、窗另一头接的是转角：墙端往前看到最近的垂直墙，中间墙带里有 ≥ 2 条贯通的窗线 / 彩色窗块就把墙延过去并记一个窗。
@@ -90,11 +98,11 @@ python scripts/analyze.py 户型图.jpg --total-width 12340 --total-height 11940
 analyze.py 默认“深色 = 墙”，黑底图整张都是深色；按线色分图层 + 轴网定位：
 
 ```bash
-python scripts/cadshot.py 截图.jpg --out <工作目录>/shot                                  # layers.png：各颜色分开，看哪个颜色是墙（建筑 CAD 插件默认青色）
-python scripts/cadshot.py 截图.jpg --x-dims 3000 7200 3600 --y-dims <横轴之间的尺寸，从上到下> --out <工作目录>/shot
+space run cadshot 截图.jpg --out <工作目录>/shot                                  # layers.png：各颜色分开，看哪个颜色是墙（建筑 CAD 插件默认青色）
+space run cadshot 截图.jpg --x-dims 3000 7200 3600 --y-dims <横轴之间的尺寸，从上到下> --out <工作目录>/shot
 #   自动找轴号圆圈和轴线（axes.png 编号 X0.. / Y0..），按轴线之间的尺寸算 mm/px：shot.json 的 mmPerPx、x_fit / y_fit（每段比例、最大残差）、
 #   axis_chain（生成脚本里 X = Axis(shot['axis_chain']['x'])，原点 = 第一根轴线）、dims_px（绿色尺寸线的刻度）
-python scripts/analyze.py 截图.jpg --wall-color cyan --scale <mmPerPx> --out <工作目录>/analysis   # 墙 = 青色双线之间的窄带
+python "$TOOLKIT/src/legacy/scripts/analyze.py" 截图.jpg --wall-color cyan --scale <mmPerPx> --out <工作目录>/analysis   # 墙 = 青色双线之间的窄带
 ```
 
 - 线色约定（CAD 索引色）：青 = 墙 / 门窗、紫 = 洁具 / 家具 / 门窗编号、绿 = 尺寸线 / 轴号、黄 = 楼梯 / 填充、红 = 轴线、白 = 文字。JPEG 截图的细线发灰，cadshot 的饱和度门槛已经放低；建筑 CAD 插件的墙线常是偏绿的青（色相 75 左右）。
@@ -104,8 +112,8 @@ python scripts/analyze.py 截图.jpg --wall-color cyan --scale <mmPerPx> --out <
 ### 尺寸数字 OCR（位图兜底：dimocr.py）
 
 ```bash
-python scripts/dimocr.py 图.jpg --scale <mmPerPx> --out <工作目录>/ocr                        # 白底户型图
-python scripts/dimocr.py 黑底截图.jpg --color green --scale 5.902 --out <工作目录>/ocr        # 黑底：--color = 尺寸线颜色（数字是白的也行）
+space run dimocr 图.jpg --scale <mmPerPx> --out <工作目录>/ocr                        # 白底户型图
+space run dimocr 黑底截图.jpg --color green --scale 5.902 --out <工作目录>/ocr        # 黑底：--color = 尺寸线颜色（数字是白的也行）
 ```
 
 不装 OCR 库：同一张图里同一个数字字形几乎一样 → 字形聚类；按比例量出每段大概多长 → 投票定“哪类字形是哪个数字”（横向线先学，竖向线两个旋转方向都试，再合起来学一遍）→ 逐段读出，和量出的长度差 > 2% 的标 ✗。
