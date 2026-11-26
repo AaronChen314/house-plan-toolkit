@@ -15,7 +15,8 @@ test('space version 输出可解析的版本矩阵', () => {
   const r = space('version');
   assert.equal(r.status, 0);
   const v = JSON.parse(r.stdout);
-  assert.match(v.toolkit, /^\d+\.\d+\.\d+$/);
+  // 允许预发布后缀（0.8.0-rc.1）
+  assert.match(v.toolkit, /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
   assert.equal(v.layoutVersion, 1);
   assert.equal(v.skills.count, 5);
 });
@@ -29,7 +30,7 @@ test('space init 生成合规骨架，lock 写入版本', () => {
   assert.equal(lint.status, 0, lint.stdout + lint.stderr);
   assert.match(lint.stdout, /0 error \/ 0 warning/);
   const lock = JSON.parse(fs.readFileSync(path.join(dir, 'space.lock.json'), 'utf8'));
-  assert.match(lock.toolkit, /^\d+\.\d+\.\d+$/);
+  assert.match(lock.toolkit, /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$/);
   assert.equal(lock.layoutVersion, 1);
 });
 
