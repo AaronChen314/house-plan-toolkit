@@ -44,7 +44,28 @@ CAD 颜色**没有国标语义**：GB/T 50001 约束线宽与线型，不约束�
 
 容易失效：全部 ByLayer 且图层 0、打印样式（CTB）覆盖、单色/黑白出图、扫描件与截图。这些情况颜色不可用，只能靠几何与文字。
 
-契约表在 `src/contracts/cad-colors.mjs`（类别、ACI、studio 配色、置信度）。识别结果写 `category` 与 `confidence`，studio 用同一张表上色；不同院配色不同时用 `overrideCategories()` 只覆盖差异项。
+**这套颜色与构件类别属于「约定」，不是程序规则。** 工具不再内置类别表：
+每个项目用自己的 `data/cad/components.json`（`kinds` 声明类别、颜色、判定依据），
+由人或 AI 按这份文档填写；CLI 只校验结构与引用，studio 只按文件里的 `kinds` 上色。
+
+```json
+{
+  "schema": "cad-components/v1",
+  "source": {"sha256": "<图元索引的哈希>"},
+  "kinds": {
+    "wall":  {"label": "墙体（承重待核）", "color": "#65409a", "basis": "0层墙带双边与洞口收边", "group": "structural"},
+    "pier":  {"label": "柱／墙垛", "color": "#793131", "basis": "成对封闭轮廓与填充", "group": "structural"},
+    "annotation": {"label": "标注", "color": "#647177", "group": "auxiliary"}
+  },
+  "assignments": {
+    "1817": {"kind": "wall", "provenance": "import"},
+    "1816/2C2": {"kind": "pier", "provenance": "ai", "confidence": 0.7, "basis": "填充 + 成对轮廓"}
+  }
+}
+```
+
+各组图纸的约定不同（有的院把门画黄、有的画绿），所以**不要把这些表抄进代码**：
+换一个院就换一份 `components.json`。置信度与依据写进条目的 `basis` / `confidence`，让人能复核。
 
 ## 图例 → 识别规则
 

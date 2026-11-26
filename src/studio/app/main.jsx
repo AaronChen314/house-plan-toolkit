@@ -1,8 +1,7 @@
 import {h, Fragment, render} from 'preact';
 import {useState, useEffect, useRef, useMemo} from 'preact/hooks';
 import {createModelStage} from '../views/model3d.js';
-import {palette, classifyEntity, categoryForEntityType, categoryColor, CAD_CATEGORIES as CATEGORIES} from '../../contracts/cad-colors.mjs';
-import {COMPONENTS, STRUCTURAL_KEYS} from '../../contracts/components.mjs';
+import {kindColor, kindLabel, kindOrder} from '../../contracts/components.mjs';
 
 const fileUrl = (project, rel) => `/api/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(rel)}`;
 
@@ -360,8 +359,8 @@ function TracePanel({projectPath, files, preview = false, onEdit}) {
       </div>
       <div class="toolbar">
         <span class="meta">已有实体 {walls.length} 个 ·</span>
-        {['wall', 'door', 'window', 'axis', 'dimension', 'furniture'].map(key => (
-          <span key={key} class="meta" style={{color: palette()[key]}}>{key}</span>
+        {['wall', 'door', 'window'].map(key => (
+          <span key={key} class="meta" style={{color: UI_COLORS[key]}}>{key}</span>
         ))}
         <span class="meta">实线=manual · 虚线=ai · 点线=其他来源 · 红点=低置信度</span>
         {!preview && <span class="meta">切到「判为无效」后点实体即可标记</span>}
@@ -380,7 +379,7 @@ function TracePanel({projectPath, files, preview = false, onEdit}) {
               const invalid = invalidSet.has(w.handle);
               const low = Number.isFinite(w.confidence) && w.confidence < 0.8;
               // 颜色只表示 CAD 类别（与惯例同表）；来源用线型区分，不抢颜色。
-              const color = invalid ? '#b3261e' : (palette()[w.category] || palette()[w.kind] || palette().wall);
+              const color = invalid ? '#b3261e' : (UI_COLORS[w.kind] || UI_COLORS.wall);
               const provenanceDash = invalid ? undefined : w.provenance === 'ai' ? `${vb.w / 200} ${vb.w / 300}` : w.provenance === 'cadvec' ? `${vb.w / 400} ${vb.w / 400}` : undefined;
               const points = outer.map(([x, y]) => `${x},${y}`).join(' ');
               return (
@@ -713,18 +712,28 @@ function rankUnderlay(f) {
   return 5;
 }
 
-function classifyCadEntity(e) {
-  const byType = categoryForEntityType(e.type);
-  if (byType) return {category: byType, basis: 'type', confidence: 0.9};
-  const hit = classifyEntity({layer: e.effectiveLayer || e.layer, aci: e.resolvedAci ?? e.aci});
-  return {category: hit.category || 'other', basis: hit.basis || 'none', confidence: hit.confidence ?? 0};
+// 显示顺序：未标注垫底，其余按 kinds 里的声明顺序。
+function sortedKinds(counts, components) {
+  const order = kindOrder(components);
+  return Object.keys(counts).sort((a, b) => {
+    if (a === UNASSIGNED) return 1;
+    if (b === UNASSIGNED) return -1;
+    const ia = order.indexOf(a), ib = order.indexOf(b);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
 }
+
+// 界面配色：只为「看得出区别」，不参与任何判定。
+// 构件颜色一律来自项目自己的 components.json（kinds[].color）。
+const UI_COLORS = {wall: '#5b6b7a', door: '#bf1670', window: '#007891', axis: '#c026d3', dimension: '#0f766e', furniture: '#2563eb'};
+const UNASSIGNED = 'unassigned';
 
 function CadPreview({data, showKinds = false, components = null, onAssign = null}) {
   const all = useMemo(() => (data.entities || []).map(e => {
     const a = components?.assignments?.[e.id];
     if (a) return {...e, category: a.kind, basis: a.provenance || 'manual', confidence: a.confidence ?? 1, assigned: true};
-    return {...e, ...classifyCadEntity(e), assigned: false};
+    // 没有标注就是没标注：不从图层名猜构件。
+    return {...e, category: UNASSIGNED, basis: null, confidence: null, assigned: false};
   }), [data, components]);
   const [hidden, setHidden] = useState(() => new Set());
   const linesAll = all.filter(e => e.points?.length > 1);
@@ -781,12 +790,12 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
       </div>
       {showKinds && (
         <div class="toolbar" data-testid="kind-filters">
-          {Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(k => (
+          {sortedKinds(counts, components).map(k => (
             <label class="meta" key={k}>
               <input type="checkbox" checked={!hidden.has(k)}
                 onChange={() => setHidden(prev => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next; })} />
-              <i style={`display:inline-block;width:.7em;height:.7em;margin-right:.3em;border-radius:2px;background:${COMPONENTS[k]?.color || categoryColor(k)}`} />
-              {COMPONENTS[k]?.label || CATEGORIES[k]?.label || k} {counts[k]}
+              <i style={`display:inline-block;width:.7em;height:.7em;margin-right:.3em;border-radius:2px;background:${k === UNASSIGNED ? '#b3b8bd' : kindColor(components, k, '#b3b8bd')}`} />
+              {k === UNASSIGNED ? '未标注' : kindLabel(components, k)} {counts[k]}
             </label>
           ))}
         </div>
@@ -794,7 +803,7 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
-            <polyline key={e.id || i} fill="none" stroke={e.color || COMPONENTS[e.category]?.color || categoryColor(e.category) || (e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86')}
+            <polyline key={e.id || i} fill="none" stroke={e.category === UNASSIGNED ? '#b3b8bd' : kindColor(components, e.category, '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
               onClick={() => setInfo(e)} style="cursor:pointer" />
           ))}
@@ -808,12 +817,12 @@ function CadPreview({data, showKinds = false, components = null, onAssign = null
         <div class="toolbar" data-testid="entity-info">
           <span class="meta">已选 <code>{info.handle || info.text}</code></span>
           <span class="meta">{info.type} · 图层 <code>{info.effectiveLayer || info.layer}</code></span>
-          <span class="meta">构件：<b>{COMPONENTS[info.category]?.label || CATEGORIES[info.category]?.label || info.category}</b>
+          <span class="meta">构件：<b>{info.category === UNASSIGNED ? '未标注' : kindLabel(components, info.category)}</b>
             {info.basis ? `（依据 ${info.basis}${info.confidence != null ? ` · 置信度 ${info.confidence}` : ''}）` : ''}</span>
           {onAssign && info.handle && (
             <label class="meta">改为
               <select value={info.category} onChange={e => onAssign(info, e.target.value)}>
-                {STRUCTURAL_KEYS.concat(['annotation', 'other']).map(k => <option key={k} value={k}>{COMPONENTS[k].label}</option>)}
+                {kindOrder(components).map(k => <option key={k} value={k}>{kindLabel(components, k)}</option>)}
               </select>
             </label>
           )}
@@ -860,7 +869,7 @@ function SourcePanel({projectPath, files}) {
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({project: projectPath, id: entity.handle, kind})
     }).then(x => x.json()).catch(e => ({ok: false, error: e.message}));
-    if (r.ok) { setMsg(`已把 ${entity.handle} 改为 ${COMPONENTS[kind]?.label || kind}`); }
+    if (r.ok) { setMsg(`已把 ${entity.handle} 改为 ${kindLabel(components, kind)}`); }
     else setErr(r.error || '写入失败');
   }
 

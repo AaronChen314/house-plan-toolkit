@@ -300,24 +300,25 @@ space cap run <id> --project p [--<参数> 值 ...]
 - **工作台**：`底图描图` 面板。选底图、调 `mm/像素` 与原点、点两下画一面墙、保存；比例不准时改数字重新画即可。
 - **CLI**：`space trace save --project … --dataset … --file items.json --actor 名字`，`space trace list`。
 
-### 颜色约定（一张表，三个消费者）
+### 构件标注（类别与颜色都由项目数据定义）
 
-`src/contracts/cad-colors.mjs` 是颜色语义的唯一定义：
+`data/cad/components.json`（`cad-components/v1`）是「图元 → 构件」的唯一来源：
 
-| 消费者 | 用法 |
+| 字段 | 含义 |
 |---|---|
-| skill 文档 | `docs/cad-conventions.md` 的「颜色约定」一节，辅助 AI 判断线条含义 |
-| 识别映射 | 实体写 `category` 与 `confidence`：图层名命中 0.85，颜色唯一命中 0.5，颜色多义 0.25 且不给结论 |
-| studio 配色 | 直接 import 同一张表（esbuild 打进前端），图例与线稿颜色与 CAD 惯例一致 |
+| `kinds` | 本项目用到的构件类别：`label`（中文名）、`color`（#rrggbb）、`basis`（默认判定依据）、`group`（structural / auxiliary） |
+| `assignments` | 图元 id → `{kind, basis?, provenance, confidence?}`；`provenance` 只认 manual / ai / rule / import |
 
-关键前提：**颜色不是国标语义**，只是模板惯例；会被 ByLayer 图层 0、打印样式、单色出图、扫描件抹掉。所以颜色只给候选，图层名与几何特征优先。不同院配色不同时用 `overrideCategories()` 只覆盖差异项。
+工具里没有内置类别表：换一家设计院就换一份约定，改约定是改数据（`space components kinds --add`），不是改代码。
+CLI 只校验「kind 必须在 kinds 里、id 必须在图元索引里」；studio 只按 `kinds[].color` 上色，
+没标注的图元显示为「未标注」，不从图层名猜构件。
 
 ### 识别不在 CLI 里
 
 CLI **不做语义识别**：不猜墙、不判断门窗类型。它只做四件事——格式准备（DWG→DXF、PDF/图片→底图）、
 图元索引（`cad.inspect`，只保留图层/文字/几何，不解释含义；默认展开顶层块，嵌套块只留引用，深度≤1、总量≤2 万）。
-工作台「构件核对」在读取时按 `src/contracts/cad-colors.mjs` 的图层名规则与图元类型归类，
-归类结果只用于显示与过滤，不写回 `cad-source`。、校验与存盘、展示与追溯。
+工作台「构件核对」只显示 `data/cad/components.json` 里的标注，没有标注就显示「未标注」。
+识别规则不写进脚本：图纸怎么读、什么颜色代表什么，都写在 [cad-conventions](cad-conventions.md) 里给人和 AI 看。
 
 历史上的规则识别脚本（`cadvec.py`、`cadsplit.py`、`analyze.py` 等）已从 `space run` 清单移出，
 文件保留在 `src/legacy/scripts/` 供参考，不再是产品路径。图纸怎么读交给 AI。

@@ -3,8 +3,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {openStore} from '../../store/index.mjs';
 import {
-  SCHEMA, COMPONENTS, COMPONENT_KEYS, STRUCTURAL_KEYS,
-  componentsDoc, validateComponents, summarize, fromLegacy
+  SCHEMA, componentsDoc, validateComponents, summarize, fromLegacy, kindOrder, kindLabel
 } from '../../contracts/components.mjs';
 
 const DEFAULT_SOURCE = 'output/cad/source/source.json';
@@ -33,7 +32,7 @@ export const commands = [
   {
     name: 'components',
     group: '图纸与资产',
-    usage: 'space components import|list|set|clear --project <project.json> ...',
+    usage: 'space components import|list|kinds|set|clear --project <project.json> ...',
     summary: '构件标注层：把图元标成墙/柱/门窗/梁等（import 旧标注、set 改一条、list 看统计）',
     async run(args, {print}) {
       const action = args.shift() || 'list';
@@ -51,15 +50,18 @@ export const commands = [
         const raw = readJson(file);
         // 两种输入都收：本契约（assignments）与旧项目（{kind:{sourceIds[]}}）。
         let assignments;
+        let kinds;
         let skipped = [];
         if (raw.schema === SCHEMA) {
           assignments = raw.assignments || {};
+          kinds = raw.kinds || {};
         } else {
           const converted = fromLegacy(raw, {entityIds: ids});
           assignments = converted.assignments;
+          kinds = converted.kinds;
           skipped = converted.skipped;
         }
-        const doc = componentsDoc({sourceSha256: sha, assignments});
+        const doc = componentsDoc({sourceSha256: sha, kinds, assignments});
         const problems = validateComponents(doc, {entityIds: ids});
         if (problems.length) {
           print(`不合契约：${problems.length} 条`);
@@ -71,7 +73,7 @@ export const commands = [
         const counts = summarize(doc);
         if (json) { print(JSON.stringify({written: TARGET, counts, skipped: skipped.slice(0, 20), entities: ids.length}, null, 2)); return; }
         print(`构件标注已写入 ${TARGET}（${src.entities.length} 个图元）`);
-        for (const k of COMPONENT_KEYS) if (counts[k]) print(`  ${COMPONENTS[k].label}：${counts[k]}`);
+        for (const k of kindOrder(doc)) if (counts[k]) print(`  ${kindLabel(doc, k)}：${counts[k]}`);
         const unassigned = ids.length - Object.keys(assignments).length;
         if (unassigned > 0) print(`  未标注：${unassigned}（构件核对里显示为「其他」）`);
         if (skipped.length) {
@@ -85,10 +87,13 @@ export const commands = [
         const id = args.take('--id');
         const kind = args.take('--kind');
         if (!id || !kind) throw new Error('需要 --id 与 --kind');
-        if (!COMPONENTS[kind]) throw new Error(`未知构件类别：${kind}（可用：${COMPONENT_KEYS.join('、')}）`);
         const {src, sha, ids} = load(store, sourceRel);
         if (!ids.includes(id)) throw new Error(`图元索引里没有这个 id：${id}`);
-        const doc = has ? store.readJson(TARGET) : componentsDoc({sourceSha256: sha});
+        if (!has) throw new Error(`还没有构件标注：先 space components import --file <components.json>（kinds 必须由数据定义）`);
+        const doc = store.readJson(TARGET);
+        if (!doc.kinds?.[kind]) {
+          throw new Error(`构件类别 ${kind} 不在本项目的 kinds 里（现有：${Object.keys(doc.kinds || {}).join('、') || '无'}）`);
+        }
         if (doc.source?.sha256 && doc.source.sha256 !== sha) {
           throw new Error('构件标注对应的图元索引已变（源文件或解析版本变了）：先重新 import，避免张冠李戴');
         }
@@ -96,13 +101,35 @@ export const commands = [
         doc.assignments[id] = {
           kind,
           provenance: args.take('--provenance') || 'manual',
-          basis: args.take('--basis') || COMPONENTS[kind].basis,
+          basis: args.take('--basis') || doc.kinds[kind].basis || '人工改判',
           ...(args.take('--confidence') ? {confidence: Number(args.take('--confidence'))} : {})
         };
         const problems = validateComponents(doc, {entityIds: ids});
         if (problems.length) throw new Error(problems[0]);
         writeComponents(store, doc, `构件改判 ${id} → ${kind}`);
-        print(`${id} → ${COMPONENTS[kind].label}（${src.entities.length} 个图元，已标注 ${Object.keys(doc.assignments).length}）`);
+        print(`${id} → ${kindLabel(doc, kind)}（${src.entities.length} 个图元，已标注 ${Object.keys(doc.assignments).length}）`);
+        return;
+      }
+
+      if (action === 'kinds') {
+        if (!has) { print(`还没有构件标注：先 import 一份（kinds 随文件进来）`); return; }
+        const doc = store.readJson(TARGET);
+        const add = args.take('--add');
+        if (add) {
+          doc.kinds = doc.kinds || {};
+          doc.kinds[add] = {
+            label: args.take('--label') || add,
+            ...(args.take('--color') ? {color: args.take('--color')} : {}),
+            ...(args.take('--basis') ? {basis: args.take('--basis')} : {}),
+            ...(args.take('--group') ? {group: args.take('--group')} : {})
+          };
+          const problems = validateComponents(doc);
+          if (problems.length) throw new Error(problems[0]);
+          writeComponents(store, doc, `新增构件类别 ${add}`);
+        }
+        for (const [k, v] of Object.entries(doc.kinds || {})) {
+          print(`  ${k.padEnd(12)} ${v.label}${v.color ? ` ${v.color}` : ''}${v.basis ? ` · ${v.basis}` : ''}`);
+        }
         return;
       }
 
@@ -124,7 +151,7 @@ export const commands = [
       const total = Object.keys(doc.assignments || {}).length;
       if (json) { print(JSON.stringify({counts, total, source: doc.source}, null, 2)); return; }
       print(`构件标注 ${total} 条（${TARGET}）`);
-      for (const k of COMPONENT_KEYS) if (counts[k]) print(`  ${STRUCTURAL_KEYS.includes(k) ? '构件' : '辅助'} · ${COMPONENTS[k].label}：${counts[k]}`);
+      for (const k of kindOrder(doc)) if (counts[k]) print(`  ${doc.kinds?.[k]?.group === 'auxiliary' ? '辅助' : '构件'} · ${kindLabel(doc, k)}：${counts[k]}`);
       const byKind = args.take('--kind');
       if (byKind) {
         const ids = Object.entries(doc.assignments || {}).filter(([, a]) => a.kind === byKind).map(([id]) => id);

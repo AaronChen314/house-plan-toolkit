@@ -9,7 +9,7 @@ import {initPlugins, listCapabilities, listPlanned, pluginSummary, runCapability
 import {pluginsEnabled} from '../contracts/plugins.mjs';
 import crypto from 'node:crypto';
 import {openStore} from '../store/index.mjs';
-import {COMPONENTS, componentsDoc, validateComponents, summarize} from '../contracts/components.mjs';
+import {componentsDoc, validateComponents, summarize, kindLabel} from '../contracts/components.mjs';
 import {queryIndex, statIndexFor} from '../indexer/build.mjs';
 import {queryProblems} from '../contracts/index-query.mjs';
 
@@ -128,7 +128,8 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
           if (!ids.includes(body.id)) throw new Error(`图元索引里没有 ${body.id}`);
           const doc = store.exists(target) ? store.readJson(target) : componentsDoc({sourceSha256: sourceSha});
           doc.assignments = doc.assignments || {};
-          doc.assignments[body.id] = {kind: body.kind, provenance: body.provenance || 'manual', basis: body.basis || COMPONENTS[body.kind]?.basis || '人工改判'};
+          if (!doc.kinds?.[body.kind]) throw new Error(`构件类别 ${body.kind} 不在本项目的 kinds 里`);
+          doc.assignments[body.id] = {kind: body.kind, provenance: body.provenance || 'manual', basis: body.basis || doc.kinds[body.kind].basis || '人工改判'};
           const problems = validateComponents(doc, {entityIds: ids});
           if (problems.length) throw new Error(problems[0]);
           store.writeData(target, JSON.stringify(doc, null, 2), {
@@ -137,7 +138,7 @@ export async function startStudio({project, port = 0, host = '127.0.0.1'} = {}) 
             baseHash: store.exists(target) ? store.hashOf(target) : null,
             confirm: true
           });
-          return send(res, 200, JSON.stringify({ok: true, counts: summarize(doc)}));
+          return send(res, 200, JSON.stringify({ok: true, label: kindLabel(doc, body.kind), counts: summarize(doc)}));
         } catch (e) {
           return send(res, 200, JSON.stringify({ok: false, error: e.message}));
         }

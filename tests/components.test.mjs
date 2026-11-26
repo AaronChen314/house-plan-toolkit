@@ -1,47 +1,52 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {COMPONENTS, SCHEMA, componentsDoc, validateComponents, summarize, fromLegacy, STRUCTURAL_KEYS} from '../src/contracts/components.mjs';
+import {SCHEMA, componentsDoc, validateComponents, summarize, fromLegacy, kindOrder, kindLabel, kindColor} from '../src/contracts/components.mjs';
 
-test('构件类别表：构件与辅助分开，颜色与标签齐全', () => {
-  for (const k of STRUCTURAL_KEYS) {
-    assert.ok(COMPONENTS[k], `${k} 必须在构件类别表里`);
-    assert.match(COMPONENTS[k].label, /[\u4e00-\u9fa5]/, `${k} 的标签要是中文`);
-    assert.match(COMPONENTS[k].color, /^#[0-9a-f]{6}$/i);
-    assert.ok(COMPONENTS[k].basis, `${k} 要写判定依据`);
-  }
-  assert.ok(!STRUCTURAL_KEYS.includes('annotation'), '标注不算构件');
+test('类别由数据定义：文档里没有 kinds，就不许有标注', () => {
+  const doc = componentsDoc({sourceSha256: 'x'});
+  doc.assignments = {A1: {kind: 'wall'}};
+  const problems = validateComponents(doc);
+  assert.ok(problems.some(p => p.includes('kinds 是空的')), '不能靠脚本里内置类别表兜底');
 });
 
-test('校验：未知类别、图元不存在、越界置信度都要报', () => {
-  const doc = componentsDoc({sourceSha256: 'abc'});
-  doc.assignments = {
-    A1: {kind: 'wall', provenance: 'import'},
-    A2: {kind: 'spaceship'},
-    A3: {kind: 'beam', confidence: 1.4},
-    A4: {kind: 'door', provenance: 'guess'}
-  };
-  const problems = validateComponents(doc, {entityIds: ['A1', 'A3', 'A4', 'A5']});
-  assert.ok(problems.some(p => p.includes('未知构件类别')));
+test('校验：类别未声明、缺 label、颜色格式、id 不存在都要报', () => {
+  const doc = componentsDoc({sourceSha256: 'x', kinds: {
+    wall: {label: '墙'},
+    bad: {color: 'red'},
+    door: {label: '门', color: '#bf1670', group: 'auxiliary'}
+  }});
+  doc.assignments = {A1: {kind: 'wall'}, A2: {kind: 'window'}, A3: {kind: 'door', confidence: 2}};
+  const problems = validateComponents(doc, {entityIds: ['A1', 'A3']});
+  assert.ok(problems.some(p => p.includes('kinds.bad: 缺 label')));
+  assert.ok(problems.some(p => p.includes('color 必须是 #rrggbb')));
+  assert.ok(problems.some(p => p.includes('kinds 里没有 window')));
   assert.ok(problems.some(p => p.includes('A2') && p.includes('没有这个 id')));
   assert.ok(problems.some(p => p.includes('confidence')));
-  assert.ok(problems.some(p => p.includes('provenance')));
 });
 
-test('旧标注（kind → sourceIds）能转成新契约，且不静默丢 id', () => {
+test('旧标注（kind → sourceIds）转成数据定义的 kinds + 标注', () => {
   const legacy = {
-    wall: {label: '实体墙', sourceIds: ['A1', 'A2', 'MISSING']},
-    beam: {label: '梁', sourceIds: ['A3']},
-    landing: {label: '平台', sourceIds: ['A4']}
+    wall: {label: '实体墙', color: '#65409a', basis: '双线加粗', sourceIds: ['A1', 'A2', 'MISSING']},
+    note: {label: '注记', sourceIds: ['A3']}
   };
-  const {assignments, skipped} = fromLegacy(legacy, {entityIds: ['A1', 'A2', 'A3']});
+  const {kinds, assignments, skipped} = fromLegacy(legacy, {entityIds: ['A1', 'A2', 'A3']});
+  assert.equal(kinds.wall.label, '实体墙');
+  assert.equal(kinds.wall.color, '#65409a');
   assert.equal(assignments.A1.kind, 'wall');
+  assert.equal(assignments.A1.basis, '双线加粗');
   assert.equal(assignments.A3.provenance, 'import');
-  assert.equal(skipped.length, 2, '缺失 id 与未知类别都要报告');
-  assert.ok(skipped.some(s => s.id === 'MISSING'));
-  assert.ok(skipped.some(s => s.kind === 'landing'));
+  assert.ok(skipped.some(s => s.id === 'MISSING'), '缺失 id 必须报告');
 });
 
-test('统计按类别计数，未标注不计数', () => {
-  const doc = {schema: SCHEMA, assignments: {A: {kind: 'wall'}, B: {kind: 'wall'}, C: {kind: 'door'}}};
-  assert.deepEqual(summarize(doc), {wall: 2, door: 1});
+test('显示顺序与取值：构件在前、辅助在后，未声明回退原键名', () => {
+  const doc = componentsDoc({kinds: {
+    wall: {label: '墙', group: 'structural', color: '#111111'},
+    annotation: {label: '标注', group: 'auxiliary'},
+    other: {label: '其他'}
+  }, assignments: {A: {kind: 'wall'}, B: {kind: 'wall'}, C: {kind: 'annotation'}}});
+  assert.deepEqual(kindOrder(doc), ['wall', 'other', 'annotation']);
+  assert.deepEqual(summarize(doc), {wall: 2, annotation: 1});
+  assert.equal(kindLabel(doc, 'wall'), '墙');
+  assert.equal(kindLabel(doc, 'nope'), 'nope');
+  assert.equal(kindColor(doc, 'annotation'), '#7d8f86');
 });
