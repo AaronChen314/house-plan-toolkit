@@ -8,7 +8,7 @@ import {
 
 test('颜色约定表：类别齐全、配色格式正确且互不重复', () => {
   assert.deepEqual(validateCategories(), []);
-  assert.deepEqual(CATEGORY_KEYS.sort(), ['axis', 'column', 'dimension', 'door', 'furniture', 'hatch', 'other', 'text', 'wall', 'window'].sort());
+  assert.deepEqual(CATEGORY_KEYS.sort(), ['axis', 'beam', 'column', 'dimension', 'door', 'furniture', 'hatch', 'opening', 'other', 'slab', 'stair', 'text', 'wall', 'window'].sort());
   for (const key of CATEGORY_KEYS) {
     const entry = CAD_CATEGORIES[key];
     assert.ok(entry.label && entry.note, `${key} 缺 label 或 note`);

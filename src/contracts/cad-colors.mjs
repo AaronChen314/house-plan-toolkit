@@ -26,6 +26,10 @@ export const CAD_CATEGORIES = {
   axis: {label: '轴线', aci: [6], studio: '#db2777', note: '轴线常为品红且是点划线；颜色与线型一起看'},
   dimension: {label: '尺寸', aci: [3], studio: '#15803d', note: '尺寸线常见绿色；斜杠刻度是更可靠的判断'},
   text: {label: '文字', aci: [2, 7], studio: '#334155', note: '文字颜色很杂，按图层或实体类型判断'},
+  beam: {label: '梁', aci: [], studio: '#be5800', note: '梁常与墙同色，靠图层名（梁/beam）或虚线识别'},
+  slab: {label: '楼板', aci: [1, 7], studio: '#475569', note: '楼板边界多为细实线；以图层名（楼板/slab）为准'},
+  stair: {label: '楼梯', aci: [], studio: '#7c2d12', note: '楼梯踏步与箭头；以图层名或踏步阵列判断'},
+  opening: {label: '洞口', aci: [], studio: '#0f766e', note: '洞口常由断口或标注表达；与门窗区分靠图层名'},
   furniture: {label: '家具', aci: [4, 5], studio: '#2563eb', note: '家具常为青色或蓝色；与窗的青色冲突时以图层名为准'},
   hatch: {label: '填充', aci: [8, 9], studio: '#94a3b8', note: '灰色实心多为原有砌体；斜线/网格填充多为新砌'},
   other: {label: '其他', aci: [], studio: '#64748b', note: '未识别的图层或颜色'}
@@ -37,6 +41,10 @@ export const CATEGORY_KEYS = Object.keys(CAD_CATEGORIES);
 export const LAYER_PATTERNS = [
   {category: 'axis', patterns: [/^(axis|轴线|定位轴线|ax)$/i, /轴线/i]},
   {category: 'dimension', patterns: [/^(dim|dimension|尺寸|标注)$/i, /尺寸|标注|dim/i]},
+  {category: 'beam', patterns: [/^(beam|梁|梁位|kl|ll)$/i, /梁|beam/i]},
+  {category: 'slab', patterns: [/^(slab|floor|楼板|板|楼面)$/i, /楼板|楼面|slab/i]},
+  {category: 'stair', patterns: [/^(stair|stairs|楼梯|梯)$/i, /楼梯|stair/i]},
+  {category: 'opening', patterns: [/^(opening|hole|洞口|开洞|洞)$/i, /洞口|开洞/i]},
   {category: 'door', patterns: [/^(door|门|doors|drmen|门洞)$/i, /门|door/i]},
   {category: 'window', patterns: [/^(win|window|窗|windows|chuang)$/i, /窗|window/i]},
   {category: 'column', patterns: [/^(col|column|柱|柱网)$/i, /柱/i]},
@@ -70,6 +78,15 @@ export function classifyEntity({layer, aci} = {}) {
   if (candidates.length === 1) return {category: candidates[0], confidence: 0.5, basis: 'aci', candidates};
   if (candidates.length > 1) return {category: null, confidence: 0.25, basis: 'aci-ambiguous', candidates};
   return {category: null, confidence: 0, basis: 'none', candidates: []};
+}
+
+// 图元类型本身也带信息：文字/尺寸/块引用不需要看图层。
+export function categoryForEntityType(type) {
+  const t = String(type || '').toUpperCase();
+  if (t === 'TEXT' || t === 'MTEXT' || t === 'ATTRIB') return 'text';
+  if (t === 'DIMENSION') return 'dimension';
+  if (t === 'INSERT') return 'other';
+  return null;
 }
 
 export function categoryColor(category) {

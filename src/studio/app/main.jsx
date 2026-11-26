@@ -1,7 +1,7 @@
 import {h, Fragment, render} from 'preact';
 import {useState, useEffect, useRef, useMemo} from 'preact/hooks';
 import {createModelStage} from '../views/model3d.js';
-import {palette, classifyEntity, categoryColor} from '../../contracts/cad-colors.mjs';
+import {palette, classifyEntity, categoryForEntityType, categoryColor, CAD_CATEGORIES as CATEGORIES} from '../../contracts/cad-colors.mjs';
 
 const fileUrl = (project, rel) => `/api/file?project=${encodeURIComponent(project)}&path=${encodeURIComponent(rel)}`;
 
@@ -51,6 +51,7 @@ function App() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showTrace, setShowTrace] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const [showSource, setShowSource] = useState(false);
 
   useEffect(() => {
     getJson('/api/capabilities')
@@ -104,6 +105,7 @@ function App() {
         <input type="text" value={projectPath} onInput={e => setProjectPath(e.target.value)} placeholder="项目配置文件路径，例如 my-house/project.json" />
         <button class="primary" onClick={() => openProject(projectPath)}>打开项目</button>
         {project && <button data-testid="preview-toggle" onClick={() => setShowPreview(v => !v)} class={showPreview ? 'active' : ''}>{showPreview ? '收起预览' : '数据预览'}</button>}
+        {project && <button data-testid="source-toggle" onClick={() => { setShowSource(v => !v); setShowPreview(false); }} class={showSource ? 'active' : ''}>{showSource ? '收起核对' : '构件核对'}</button>}
         {project && <button data-testid="index-toggle" onClick={() => { setShowIndex(v => !v); setShowPreview(false); }} class={showIndex ? 'active' : ''}>{showIndex ? '收起索引' : '几何索引'}</button>}
         {project && <button data-testid="confirm-toggle" onClick={() => { setShowConfirm(v => !v); setShowPreview(false); }} class={showConfirm ? 'active' : ''}>{showConfirm ? '收起确认' : '确认清单'}</button>}
         {project && <button data-testid="trace-toggle" onClick={() => { setShowTrace(v => !v); setShowPreview(false); }} class={showTrace ? 'active' : ''}>{showTrace ? '收起描图' : '底图描图'}</button>}
@@ -134,6 +136,7 @@ function App() {
             )}
             {project && showIndex && <IndexPanel projectPath={projectPath} />}
             {project && showConfirm && <ConfirmPanel projectPath={projectPath} files={project.files || []} />}
+            {project && showSource && <SourcePanel projectPath={projectPath} files={project.files || []} />}
             {project && showPreview && <TracePanel projectPath={projectPath} files={project.files || []} preview onEdit={() => { setShowPreview(false); setShowTrace(true); }} />}
             {project && showTrace && <TracePanel projectPath={projectPath} files={project.files || []} />}
             {!project && <div class="panel"><h3>打开一个项目</h3><p class="desc">填写 project.json 的路径（相对当前工作目录或绝对路径）。工作台只读取项目文件，生成物写入项目 output/。</p></div>}
@@ -187,7 +190,9 @@ function App() {
 // 保存后由 annotation.trace 合并进数据集模型（带操作者与时间）。
 function TracePanel({projectPath, files, preview = false, onEdit}) {
   const datasets = (files || []).map(f => /^data\/datasets\/([^/]+)\/dataset\.json$/.exec(f)).filter(Boolean).map(m => m[1]);
-  const images = (files || []).filter(f => /\.(png|jpe?g|webp)$/i.test(f));
+  // 底图优先取 CAD 出的图纸，别把三维效果图当底图。
+  const images = (files || []).filter(f => /\.(png|jpe?g|webp)$/i.test(f))
+    .sort((a, b) => rankUnderlay(a) - rankUnderlay(b));
   const [dataset, setDataset] = useState(datasets[0] || '');
   const [image, setImage] = useState(images[0] || '');
   const [mmPerPx, setMmPerPx] = useState('12.5');
@@ -207,8 +212,10 @@ function TracePanel({projectPath, files, preview = false, onEdit}) {
   useEffect(() => { if (!image && images.length) setImage(images[0]); }, [images.join(',')]);
   useEffect(() => {
     if (!dataset) { setWalls([]); return; }
+    const modelPath = `data/datasets/${dataset}/model.json`;
+    if (!(files || []).includes(modelPath)) { setWalls([]); return; }
     let dead = false;
-    fetch(fileUrl(projectPath, `data/datasets/${dataset}/model.json`))
+    fetch(fileUrl(projectPath, modelPath))
       .then(r => (r.ok ? r.json() : null))
       .then(m => {
         if (dead) return;
@@ -236,6 +243,7 @@ function TracePanel({projectPath, files, preview = false, onEdit}) {
   // 选中的底图如果来自 cad.vector，就用它算好的比例与原点预填，避免手动对齐。
   useEffect(() => {
     if (!image) return;
+    if (!(files || []).includes('output/cad/underlay.json')) return;
     let dead = false;
     // 只读底图元数据（几百字节），不拉整包 cad-source。
     fetch(fileUrl(projectPath, 'output/cad/underlay.json'))
@@ -695,10 +703,34 @@ function Report({report}) {
   );
 }
 
-function CadPreview({data}) {
-  const entities = data.entities || [];
-  const lines = entities.filter(e => e.points?.length > 1);
-  const texts = entities.filter(e => e.text && e.at);
+// 底图排序：宁可没有，也不把效果图当图纸。
+function rankUnderlay(f) {
+  if (/output\/cad\/underlay\.(png|jpe?g|webp)$/i.test(f)) return 0;
+  if (/^output\/cad\//i.test(f)) return 1;
+  if (/underlay|底图|plan|平面/i.test(f)) return 2;
+  if (/output\/browser-check|render|效果|camera/i.test(f)) return 9;
+  return 5;
+}
+
+function classifyCadEntity(e) {
+  const byType = categoryForEntityType(e.type);
+  if (byType) return {category: byType, basis: 'type', confidence: 0.9};
+  const hit = classifyEntity({layer: e.effectiveLayer || e.layer, aci: e.resolvedAci ?? e.aci});
+  return {category: hit.category || 'other', basis: hit.basis || 'none', confidence: hit.confidence ?? 0};
+}
+
+function CadPreview({data, showKinds = false}) {
+  const all = useMemo(() => (data.entities || []).map(e => ({...e, ...classifyCadEntity(e)})), [data]);
+  const [hidden, setHidden] = useState(() => new Set());
+  const linesAll = all.filter(e => e.points?.length > 1);
+  const textsAll = all.filter(e => e.text && e.at);
+  const lines = linesAll.filter(e => !hidden.has(e.category));
+  const texts = textsAll.filter(e => !hidden.has(e.category));
+  const counts = useMemo(() => {
+    const c = {};
+    for (const e of all) c[e.category] = (c[e.category] || 0) + 1;
+    return c;
+  }, [all]);
   const [info, setInfo] = useState(null);
   const [view, setView] = useState(null);
   const drag = useRef(null);
@@ -739,21 +771,72 @@ function CadPreview({data}) {
         <button onClick={() => setView(null)}>全图</button>
         <span class="meta">{lines.length} 条线 · {texts.length} 段文字</span>
         {info && <span class="meta">已选：<code>{info.handle || info.text || ''}</code></span>}
+        {showKinds && <button onClick={() => setHidden(new Set())}>全部显示</button>}
+        {showKinds && <button onClick={() => setHidden(new Set(Object.keys(counts)))}>全部隐藏</button>}
       </div>
+      {showKinds && (
+        <div class="toolbar" data-testid="kind-filters">
+          {Object.keys(counts).sort((a, b) => counts[b] - counts[a]).map(k => (
+            <label class="meta" key={k}>
+              <input type="checkbox" checked={!hidden.has(k)}
+                onChange={() => setHidden(prev => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next; })} />
+              <i style={`display:inline-block;width:.7em;height:.7em;margin-right:.3em;border-radius:2px;background:${categoryColor(k)}`} />
+              {CATEGORIES[k]?.label || k} {counts[k]}
+            </label>
+          ))}
+        </div>
+      )}
       <div class="stage">
         <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} onWheel={zoom} onPointerDown={down} onPointerMove={move} onPointerUp={up}>
           {lines.map((e, i) => (
             <polyline key={e.id || i} fill="none" stroke={e.color || categoryColor(e.category) || (e.layerColor ? `#${(e.layerColor >>> 0).toString(16).padStart(6, '0')}` : '#7d8f86')}
               stroke-width={stroke} points={e.points.map(([x, y]) => `${x},${-y}`).join(' ')}
-              onClick={() => setInfo({handle: e.handle, layer: e.layer})} style="cursor:pointer" />
+              onClick={() => setInfo({handle: e.handle, type: e.type, layer: e.effectiveLayer || e.layer,
+                category: e.category, basis: e.basis, confidence: e.confidence})} style="cursor:pointer" />
           ))}
           {texts.map((t, i) => (
             <text key={i} x={t.at[0]} y={-t.at[1]} font-size={t.height || 100} fill="#34483b"
-              transform={`rotate(${-t.rotation || 0} ${t.at[0]} ${-t.at[1]})`} onClick={() => setInfo({text: t.text, handle: t.handle})}>{t.text}</text>
+              transform={`rotate(${-t.rotation || 0} ${t.at[0]} ${-t.at[1]})`} onClick={() => setInfo({text: t.text, handle: t.handle, category: t.category})}>{t.text}</text>
           ))}
         </svg>
       </div>
       {info && <pre class="meta">{JSON.stringify(info, null, 2)}</pre>}
+    </div>
+  );
+}
+
+function SourcePanel({projectPath, files}) {
+  const candidates = (files || []).filter(f => typeof f === 'string' && /\.json$/.test(f) && /cad|source/i.test(f));
+  const [file, setFile] = useState(candidates.find(p => /source\.json$/.test(p)) || candidates[0] || '');
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (!file) return;
+    let dead = false;
+    setData(null); setErr('');
+    fetch(fileUrl(projectPath, file)).then(r => r.json()).then(j => {
+      if (dead) return;
+      if (!Array.isArray(j.entities)) throw new Error('不是图元索引（需要 cad-source/v1）');
+      setData(j);
+    }).catch(e => !dead && setErr(e.message));
+    return () => { dead = true; };
+  }, [file, projectPath]);
+
+  return (
+    <div class="panel" data-testid="source-panel">
+      <h2>构件核对</h2>
+      <p class="desc">每条线带构件类型：类型来自图层名与图元类型，不猜几何。点线看 handle / 图层 / 依据；勾选框按类型过滤。</p>
+      <div class="toolbar">
+        <label class="meta">图元索引
+          <select value={file} onChange={e => setFile(e.target.value)}>
+            {candidates.length ? candidates.map(p => <option key={p} value={p}>{p}</option>) : <option value="">（先跑 cad.inspect）</option>}
+          </select>
+        </label>
+      </div>
+      {err && <div class="banner err">{err}</div>}
+      {data && <CadPreview data={data} showKinds />}
+      {!data && !err && <div class="banner warn">还没有图元索引：<code>space cap run cad.inspect --dxf …</code></div>}
     </div>
   );
 }

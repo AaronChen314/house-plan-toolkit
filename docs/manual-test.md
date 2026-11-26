@@ -149,6 +149,18 @@ $S trace review --project project.json --dataset d1        # 按来源统计，�
 
 **预期**：`--dry-run` 只报校验结果不写盘；写盘后 `trace review` 显示 `ai N`，`confidence < 0.8` 的墙被列出；studio 里 AI 墙虚线、低置信度红点。
 
+## 4.4.1 构件核对（每条线带类型）
+
+`space cap run cad.inspect --project <project.json> --dxf <dxf> --out output/cad/source` 之后，
+工作台 →「构件核对」：每条线按图层名与图元类型归到构件类别（墙/门/窗/梁/楼板/楼梯/洞口/柱/
+尺寸/文字/填充/其他），带计数与勾选过滤，点线可看 handle、图层、判定依据与置信度。
+
+**预期**：类型过滤栏出现中文构件名与数量；勾掉某类后画布上对应线条消失；
+点任意一条线，底部显示 `{"handle":"…","type":"LINE","layer":"…","category":"wall","basis":"layer","confidence":0.85}`。
+
+图层 0 上的线条没有语义，会归到「其他」——这不是漏判，而是文件本身没写。
+要变成墙/门，走 AI 提议或手工描图，见 4.5 / 4.6。
+
 ## 4.5 PDF / 截图 → 底图 → 描图
 
 ```sh

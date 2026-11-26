@@ -315,7 +315,9 @@ space cap run <id> --project p [--<参数> 值 ...]
 ### 识别不在 CLI 里
 
 CLI **不做语义识别**：不猜墙、不判断门窗类型。它只做四件事——格式准备（DWG→DXF、PDF/图片→底图）、
-图元索引（`cad.inspect`，只保留图层/文字/几何，不解释含义；默认不展开块，`--blocks` 才展开）、校验与存盘、展示与追溯。
+图元索引（`cad.inspect`，只保留图层/文字/几何，不解释含义；默认不展开块，`--blocks` 才展开）。
+工作台「构件核对」在读取时按 `src/contracts/cad-colors.mjs` 的图层名规则与图元类型归类，
+归类结果只用于显示与过滤，不写回 `cad-source`。、校验与存盘、展示与追溯。
 
 历史上的规则识别脚本（`cadvec.py`、`cadsplit.py`、`analyze.py` 等）已从 `space run` 清单移出，
 文件保留在 `src/legacy/scripts/` 供参考，不再是产品路径。图纸怎么读交给 AI。

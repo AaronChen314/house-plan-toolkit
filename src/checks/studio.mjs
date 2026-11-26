@@ -91,7 +91,7 @@ try {
   });
   assert.notEqual(confirmPanel.mode, 'none', '确认清单面板没有渲染出内容');
 
-  // 整包图纸（cad-source）任何阶段都不该被整份加载；数据集模型只在打开描图面板时读。
+  // 整包图纸（cad-source）首屏与视口取数都不整份加载；只有用户点「构件核对」才主动读。
   const bulk = requests.filter(u => /\/api\/file\?.*source\.json/.test(u));
   const entityRequests = requests.filter(u => u.includes('/api/entities'));
   assert.equal(bulk.length, 0, `加载了整包图纸：${bulk.join(', ')}`);
@@ -100,6 +100,30 @@ try {
     assert.ok(entityRequests[0].includes('box='), '视口请求缺少包围盒');
     assert.ok(drawn > 0, '视口没有画出图元');
   }
+  // 构件核对：每条线带构件类型，可按类型过滤，点线能看依据。
+  await page.click('[data-testid="source-toggle"]');
+  await page.waitForSelector('[data-testid="source-panel"]', {timeout: 10000});
+  const sourcePanel = await page.evaluate(() => {
+    const panel = document.querySelector('[data-testid="source-panel"]');
+    const filters = [...(panel?.querySelectorAll('[data-testid="kind-filters"] label') || [])]
+      .map(l => l.textContent.replace(/\s+/g, ' ').trim());
+    return {
+      filters,
+      lines: panel ? panel.querySelectorAll('svg polyline').length : 0,
+      empty: !!panel?.querySelector('.banner.warn')
+    };
+  });
+  if (sourcePanel.empty) {
+    console.log('构件核对：项目里还没有图元索引（cad.inspect），跳过绘制校验');
+  } else {
+    assert.ok(sourcePanel.filters.length > 0, '构件核对没有渲染类型过滤');
+    assert.ok(sourcePanel.lines > 0, '构件核对没有画出线条');
+    // 类型名必须是中文构件名，不能把内部键直接丢给用户。
+    assert.ok(sourcePanel.filters.every(t => /[\u4e00-\u9fa5]/.test(t)), `类型过滤不是中文构件名：${sourcePanel.filters.join(' | ')}`);
+  }
+  const bulkAfterSource = requests.filter(u => /\/api\/file\?.*source\.json/.test(u));
+  assert.ok(bulkAfterSource.length <= 1, `构件核对重复拉取整包索引：${bulkAfterSource.length} 次`);
+
   assert.deepEqual(errors, []);
 
   await page.screenshot({path: path.join(out, 'index-panel.png')});
@@ -116,6 +140,7 @@ try {
     tracePanel,
     drawn,
     confirmPanel,
+    sourcePanel,
     entityRequests: entityRequests.length,
     bulkRequests: bulk.length,
     errors
