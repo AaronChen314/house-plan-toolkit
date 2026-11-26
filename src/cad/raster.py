@@ -48,7 +48,8 @@ def from_dxf(src, out_dir):
     def to_pt(x, y):
         return fitz.Point((x - minx) / PX_MM, (maxy - y) / PX_MM)
     for a, b in segs:
-        page.draw_line(to_pt(*a), to_pt(*b), color=(0, 0, 0), width=0.3)
+        # 线宽要够 AI 与肉眼都看得清：1pt=1px（dpi=72），1.0pt 约 1px
+        page.draw_line(to_pt(*a), to_pt(*b), color=(0, 0, 0), width=1.0)
     pix = page.get_pixmap(dpi=72)  # 1pt = 1px
     target = out_dir / 'underlay.png'
     pix.save(target)
