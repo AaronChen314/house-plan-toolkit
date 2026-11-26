@@ -88,9 +88,10 @@ export const commands = [
       const {SCHEMAS} = await import('../../contracts/schemas.mjs');
       const bundleFile = path.join(ROOT, 'skills', '.bundle.json');
       const skills = fs.existsSync(bundleFile) ? JSON.parse(fs.readFileSync(bundleFile, 'utf8')) : null;
-      // npm pack 会把当时的 git 提交写进 package.json 的 gitHead：装好的包也能看出是哪一版。
-      const pkgFile = path.join(ROOT, 'package.json');
-      const gitHead = fs.existsSync(pkgFile) ? JSON.parse(fs.readFileSync(pkgFile, 'utf8')).gitHead : null;
+      // 打包时 scripts/pack.mjs 写进 src/build-info.json；dev 检出没有这个文件就跳过。
+      const infoFile = path.join(ROOT, 'src', 'build-info.json');
+      const build = fs.existsSync(infoFile) ? JSON.parse(fs.readFileSync(infoFile, 'utf8')) : null;
+      const gitHead = build?.commit || null;
       print(JSON.stringify({
         toolkit: VERSION,
         ...(gitHead ? {commit: gitHead.slice(0, 7)} : {}),
