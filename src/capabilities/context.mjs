@@ -19,11 +19,14 @@ export function relOf(projectDir, abs) {
   return path.relative(projectDir, abs).split(path.sep).join('/');
 }
 
-export function runProcess(ctx, exec, args) {
+export function runProcess(ctx, exec, args, {timeout = 300_000} = {}) {
   ctx.log(`$ ${path.basename(exec)} ${args.map(a => (a.includes(' ') ? JSON.stringify(a) : a)).join(' ')}`);
-  const r = spawnSync(exec, args, {cwd: ctx.dir, encoding: 'utf8'});
+  const r = spawnSync(exec, args, {cwd: ctx.dir, encoding: 'utf8', timeout, killSignal: 'SIGKILL'});
   if (r.stdout) ctx.log(r.stdout.trim());
   if (r.stderr) ctx.log(r.stderr.trim());
+  if (r.error?.code === 'ETIMEDOUT') {
+    throw fail('E_EXEC_TIMEOUT', `${path.basename(exec)} 超过 ${Math.round(timeout / 1000)} 秒未结束，已终止`, {exec: path.basename(exec), timeout});
+  }
   if (r.error) throw fail('E_EXEC_DEPENDENCY', `无法执行 ${path.basename(exec)}：${r.error.message}`);
   if (r.status !== 0) throw fail('E_EXEC_PROCESS', `命令失败（退出码 ${r.status}）：${path.basename(exec)}`);
   return r.stdout;

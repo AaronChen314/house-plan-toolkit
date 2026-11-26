@@ -132,7 +132,14 @@ elif src_kind == '.dxf':
             lt = (e.dxf.get('linetype', 'BYLAYER') or 'BYLAYER').upper()
             if lt == 'BYLAYER': lt = lt_of_layer.get(layer, '').upper()
             strokes.append(dict(pts=pts, color=ent_color(e, layer), width=0, dashed=lt not in ('', 'CONTINUOUS', 'BYBLOCK'), layer=layer))
-    def walk(ents, parent_layer='', depth=0):
+    # 嵌套块（INSERT 里再套 INSERT）在装修图里很常见，直接递归会指数爆炸：
+    # 实测一份 445 图元的方案图展开了 17 万次虚图元、吃掉 1GB。这里三重设限。
+    MAX_BLOCK_DEPTH = 3
+    MAX_EXPANDED = 50000
+    expanded = [0]
+    capped = [False]
+
+    def walk(ents, parent_layer='', depth=0, chain=()):
         for e in ents:
             t = e.dxftype(); layer = e.dxf.get('layer', '0')
             if layer == '0' and parent_layer: layer = parent_layer
@@ -140,7 +147,14 @@ elif src_kind == '.dxf':
             try:
                 if t == 'INSERT':
                     inserts.append(dict(name=e.dxf.name, x=e.dxf.insert.x, y=e.dxf.insert.y, layer=layer, rot=e.dxf.get('rotation', 0)))
-                    if depth < 6: walk(e.virtual_entities(), layer, depth + 1)
+                    handle = e.dxf.get('handle')
+                    if depth < MAX_BLOCK_DEPTH and handle not in chain and expanded[0] < MAX_EXPANDED:
+                        for sub in e.virtual_entities():
+                            expanded[0] += 1
+                            if expanded[0] > MAX_EXPANDED:
+                                capped[0] = True
+                                break
+                            walk([sub], layer, depth + 1, chain + (handle,))
                 elif t == 'DIMENSION':
                     try: val = e.get_measurement()
                     except Exception: val = None
@@ -1441,6 +1455,7 @@ info = dict(file=os.path.abspath(a.file), mmPerUnit=round(S, 5), scale_from=how,
             spec_walls=[dict(src=w['_src'], kind=w['_kind'], a=w['a'], b=w['b'], t=w['t']) for w in spec_walls],
             structs=structs, dims=dims_out, axes=axes, texts=[dict(text=t['text'], at=[R5(X(t['x'])), R5(Y(t['y']))]) for t in texts],
             inserts=[dict(name=i['name'], at=[R5(X(i['x'])), R5(Y(i['y']))], layer=i['layer']) for i in inserts][:300],
+            block_expanded=expanded[0], block_capped=capped[0],
             dxf_dims=[dict(value=d['value'], a=[R5(X(d['p1'][0])), R5(Y(d['p1'][1]))], b=[R5(X(d['p2'][0])), R5(Y(d['p2'][1]))]) for d in dimsx][:400])
 json.dump(info, open(os.path.join(out_dir, 'cad.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 kinds = Counter(p['kind'] for p in P)
