@@ -81,16 +81,22 @@ export const commands = [
         // 没给就看当前目录是不是项目根，别落到没有依赖的系统 python。
         const project = args.take('--project') || (fs.existsSync('project.json') ? path.resolve('project.json') : undefined);
         const out = args.take('--out') || 'output/cad/source';
+        // 依赖装在项目自己的 venv 里：缺了给一句人话，别甩 Python traceback。
+        const {spawnSync: probe} = await import('node:child_process');
+        const py = pythonFor(project);
+        if (probe(py, ['-c', 'import ezdxf'], {encoding: 'utf8'}).status !== 0) {
+          throw new Error(`解析 DXF 需要 ezdxf，当前解释器 ${py} 没装：先运行 space setup --project <项目目录>，或设置 SPACE_PYTHON`);
+        }
         if (!project) {
           // 不在项目里：只做裸解析，产物按 --out 落盘，不涉及存储登记。
-          run(pythonFor(undefined), [path.join(ROOT, 'src/cad/read.py'), ...args.rest, '--out', out]);
+          run(py, [path.join(ROOT, 'src/cad/read.py'), ...args.rest, '--out', out]);
           return;
         }
         // 在项目里就走存储层：先解析到临时目录，再由 store 搬进 output/ 并登记。
         const {openStore} = await import('../../store/index.mjs');
         const store = openStore(project);
         const staging = store.staging();
-        run(pythonFor(project), [path.join(ROOT, 'src/cad/read.py'), ...args.rest, '--out', staging]);
+        run(py, [path.join(ROOT, 'src/cad/read.py'), ...args.rest, '--out', staging]);
         const written = store.ingest(staging, out);
         for (const w of written) print(w.path);
         return;
