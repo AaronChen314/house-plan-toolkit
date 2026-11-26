@@ -96,7 +96,16 @@ export const commands = [
       const tool = registry[name];
       if (!tool) throw new Error('未知工具：' + name);
       const project = fs.existsSync('project.json') ? path.resolve('project.json') : undefined;
-      spawn(tool.runtime === 'python' ? pythonFor(project) : process.execPath, [path.join(root, 'src', tool.entry), ...args.rest]);
+      const exe = tool.runtime === 'python' ? pythonFor(project) : process.execPath;
+      if (tool.runtime === 'python') {
+        // 归档脚本依赖 ezdxf 等：缺依赖时给一句人话，别甩 Python traceback。
+        const {spawnSync} = await import('node:child_process');
+        const probe = spawnSync(exe, ['-c', 'import ezdxf'], {encoding: 'utf8'});
+        if (probe.status !== 0) {
+          throw new Error(`这个脚本需要 Python 依赖（ezdxf 等），当前解释器 ${exe} 没装：先运行 space setup --project <项目目录>`);
+        }
+      }
+      spawn(exe, [path.join(root, 'src', tool.entry), ...args.rest]);
     }
   }
 ];
